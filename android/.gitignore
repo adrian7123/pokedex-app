@@ -1,0 +1,12 @@
+gradle-wrapper.jar
+/.gradle
+/captures/
+/gradlew
+/gradlew.bat
+/local.properties
+GeneratedPluginRegistrant.java
+.cxx/
+
+# A keystore de release (release.jks + key.properties) fica versionada de
+# propósito, como no movva-app: o repositório é privado.
+**/*.keystore

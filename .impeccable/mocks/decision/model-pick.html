@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=390">
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{--w:#FFFFFF;--h:#D9D9D4;--m:#6E6E68;--ink:#1C1C1C;--fire:#E8613C;--grass:#3FA45B;--poison:#A35BC4;--water:#3D82E0}
+*{box-sizing:border-box;margin:0;padding:0}
+body{width:390px;height:844px;overflow:hidden;background:var(--w);color:var(--ink);font-family:Figtree,sans-serif;position:relative}
+header{padding:54px 20px 0}
+h1{font-size:28px;font-weight:700;letter-spacing:-.02em}
+.sub{font-size:13px;color:var(--m);margin-top:4px}
+.search{margin:16px 20px 0;height:46px;border-bottom:1.5px solid var(--ink);display:flex;align-items:center;font-size:15px;color:var(--m);gap:10px}
+.idx{display:flex;gap:16px;padding:12px 20px;font-size:13px;color:var(--m)}
+.idx b{color:var(--ink)}
+.plate{display:flex;gap:16px;padding:14px 20px;border-top:1px solid var(--h);align-items:center}
+.spec{width:84px;height:84px;flex:none;position:relative}
+.spec .body{position:absolute;inset:10px;border-radius:50%;background:color-mix(in srgb,var(--t) 22%,#f4f4f2)}
+.spec .lead{position:absolute;right:-10px;top:18px;width:24px;height:1px;background:var(--m)}
+.meta{flex:1}
+.meta .no{font-size:12px;color:var(--m);font-variant-numeric:tabular-nums}
+.meta b{display:block;font-size:19px;font-weight:700;margin:2px 0 4px}
+.meta .lat{font-size:13px;color:var(--m);font-style:italic}
+.range{width:44px;height:30px;border:1px solid var(--h);border-radius:4px;position:relative;overflow:hidden}
+.range i{position:absolute;left:8px;top:6px;width:18px;height:14px;border-radius:40%;background:var(--t);opacity:.5}
+nav{position:absolute;left:0;right:0;bottom:0;height:80px;border-top:1px solid var(--h);background:var(--w);display:flex;justify-content:space-around;padding-top:14px;font-size:12px;color:var(--m)}
+nav .a{color:var(--ink);font-weight:700}
+</style></head><body>
+<header><h1>Pokédex</h1><div class="sub">Guia de campo · Kanto (FireRed)</div></header>
+<div class="search">⌕ Buscar espécime</div>
+<div class="idx"><b>Todos 151</b><span>Vistos 120</span><span>Registrados 88</span></div>
+<div class="plate" style="--t:var(--grass)"><div class="spec"><div class="body"></div><div class="lead"></div></div><div class="meta"><span class="no">001</span><b>Bulbasaur</b><span class="lat">Pokémon Semente · Planta / Venenoso</span></div><div class="range"><i></i></div></div>
+<div class="plate" style="--t:var(--grass)"><div class="spec"><div class="body"></div><div class="lead"></div></div><div class="meta"><span class="no">002</span><b>Ivysaur</b><span class="lat">Pokémon Semente · Planta / Venenoso</span></div><div class="range"><i></i></div></div>
+<div class="plate" style="--t:var(--fire)"><div class="spec"><div class="body"></div><div class="lead"></div></div><div class="meta"><span class="no">004</span><b>Charmander</b><span class="lat">Pokémon Lagarto · Fogo</span></div><div class="range"><i></i></div></div>
+<div class="plate" style="--t:var(--fire)"><div class="spec"><div class="body"></div><div class="lead"></div></div><div class="meta"><span class="no">005</span><b>Charmeleon</b><span class="lat">Pokémon Chama · Fogo</span></div><div class="range"><i></i></div></div>
+<div class="plate" style="--t:var(--water)"><div class="spec"><div class="body"></div><div class="lead"></div></div><div class="meta"><span class="no">007</span><b>Squirtle</b><span class="lat">Pokémon Tartaruguinha · Água</span></div><div class="range"><i></i></div></div>
+<nav><span class="a">Pokédex</span><span>Aventuras</span><span>Coleção</span><span>Consulta</span></nav>
+</body></html>

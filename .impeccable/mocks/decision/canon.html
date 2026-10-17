@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=390">
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{width:390px;height:844px;overflow:hidden;background:#fff;color:#111318;font-family:Roboto,sans-serif;position:relative}
+.app{height:108px;padding:52px 16px 0;display:flex;align-items:center;justify-content:space-between;background:#E3350D;color:#fff}
+.app h1{font-size:22px;font-weight:500}
+.search{margin:14px 16px;height:52px;border-radius:26px;background:#F0F0F3;display:flex;align-items:center;padding:0 18px;color:#6b6f78}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:0 16px}
+.card{height:140px;border-radius:16px;padding:12px;color:#fff;position:relative;overflow:hidden}
+.card b{font-size:17px;font-weight:700}
+.card .n{position:absolute;right:12px;top:12px;font-size:13px;opacity:.8}
+.card .t{display:inline-block;margin-top:8px;font-size:11px;padding:3px 10px;border-radius:10px;background:rgba(255,255,255,.25)}
+.card .art{position:absolute;right:-6px;bottom:-6px;width:80px;height:80px;border-radius:50%;background:rgba(255,255,255,.3)}
+nav{position:absolute;left:0;right:0;bottom:0;height:80px;background:#F3F3F6;display:flex;justify-content:space-around;padding-top:16px;font-size:12px;color:#44474e}
+</style></head><body>
+<div class="app"><h1>Pokédex</h1><span>⚙</span></div>
+<div class="search">Buscar Pokémon</div>
+<div class="grid">
+<div class="card" style="background:#49D0B0"><b>Bulbasaur</b><span class="n">#001</span><br><span class="t">Planta</span><div class="art"></div></div>
+<div class="card" style="background:#49D0B0"><b>Ivysaur</b><span class="n">#002</span><br><span class="t">Planta</span><div class="art"></div></div>
+<div class="card" style="background:#FB6C6C"><b>Charmander</b><span class="n">#004</span><br><span class="t">Fogo</span><div class="art"></div></div>
+<div class="card" style="background:#FB6C6C"><b>Charmeleon</b><span class="n">#005</span><br><span class="t">Fogo</span><div class="art"></div></div>
+<div class="card" style="background:#76BDFE"><b>Squirtle</b><span class="n">#007</span><br><span class="t">Água</span><div class="art"></div></div>
+<div class="card" style="background:#76BDFE"><b>Wartortle</b><span class="n">#008</span><br><span class="t">Água</span><div class="art"></div></div>
+</div>
+<nav><span>Pokédex</span><span>Aventuras</span><span>Coleção</span><span>Consulta</span></nav>
+</body></html>

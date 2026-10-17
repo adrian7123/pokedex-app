@@ -1,0 +1,59 @@
+name: pokedex
+description: "Pokédex offline com dados da PokeAPI: busca, filtros, evolução por jogo, aventuras e coleção de exemplares."
+publish_to: 'none'
+
+# build-name (versionName / CFBundleShortVersionString) + build-number
+# (versionCode / CFBundleVersion).
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.13.5
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+
+  cupertino_icons: ^1.0.8
+  # Banco local (SQLite embutido + dados do usuário).
+  drift: ^2.35.2
+  drift_flutter: ^0.3.1
+  path_provider: ^2.1.6
+  path: ^1.9.1
+  # Dados sob demanda da PokeAPI (flavor text, artwork), com cache.
+  http: ^1.6.0
+  # Transições shared axis / fade through.
+  animations: ^3.0.0
+  intl: ^0.20.3
+  uuid: ^4.6.0
+  flutter_svg: ^2.3.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  drift_dev: ^2.35.1
+  build_runner: ^2.16.2
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/db/
+    - assets/sprites/pokemon/
+    - assets/sprites/pokemon/shiny/
+    - assets/sprites/items/
+    - assets/icons/types/
+
+  fonts:
+    - family: MPLUSRounded1c
+      fonts:
+        - asset: assets/fonts/MPLUSRounded1c-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/MPLUSRounded1c-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/MPLUSRounded1c-Bold.ttf
+          weight: 700
+        - asset: assets/fonts/MPLUSRounded1c-ExtraBold.ttf
+          weight: 800
