@@ -1,8 +1,13 @@
+import 'dart:async';
+import 'dart:convert';
+
+import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 
 import '../../core/data/dex_repository.dart';
 import '../../core/data/labels.dart';
 import '../../core/data/models.dart';
+import '../../core/data/user_database.dart';
 import '../../core/state/app_state.dart';
 import 'search.dart';
 
@@ -82,6 +87,7 @@ class PokedexController extends ChangeNotifier {
     _lastVg = scopeVg;
     app.addListener(_onApp);
     search.addListener(_onQuery);
+    _restore();
   }
 
   static final _byApp = Expando<PokedexController>();
@@ -114,6 +120,8 @@ class PokedexController extends ChangeNotifier {
   late final Map<int, String> triggerIdentifiers;
 
   final Map<int, Map<int, int>> _inGameCache = {};
+  final Map<int, Set<int>> _availableCache = {};
+  final Map<int, Set<int>> _primaryCache = {};
 
   void _index() {
     _entries = dex.entries;
@@ -147,6 +155,14 @@ class PokedexController extends ChangeNotifier {
   /// Espécies do jogo (com DLC) → número regional. Cacheado por jogo.
   Map<int, int> speciesInGame(int vg) => _inGameCache[vg] ??= dex.speciesInGame(vg);
 
+  /// Espécies obtíveis no jogo (dex regional + encontros + Nacional do jogo). Cacheado.
+  Set<int> availableInGame(int vg) => _availableCache[vg] ??= dex.availableInGame(vg);
+
+  /// pokemonIds que representam cada espécie no jogo (Meowth de Galar na dex de Galar).
+  Set<int> _primaryIn(int vg) => _primaryCache[vg] ??= {
+        for (final sid in {...speciesInGame(vg).keys, ...availableInGame(vg)}) dex.formInGame(vg, sid),
+      };
+
   // ---------------------------------------------------------------------------
   // Escopo de jogo
 
@@ -177,16 +193,34 @@ class PokedexController extends ChangeNotifier {
 
   int? _lastVg;
 
-  /// Número a mostrar: regional no escopo de um jogo, nacional no Nacional.
-  int numberOf(DexEntry e) {
-    final vg = scopeVg;
-    if (vg == null) return e.speciesId;
-    return speciesInGame(vg)[e.speciesId] ?? e.speciesId;
+  bool _regionalOnly = true;
+
+  /// No escopo de um jogo: só a dex regional (padrão) ou tudo que dá para obter nele.
+  bool get regionalOnly => _regionalOnly;
+  set regionalOnly(bool v) {
+    if (v == _regionalOnly) return;
+    _regionalOnly = v;
+    if (scopeVg != null) _changed();
   }
 
+  /// Espécies do escopo atual; null = Nacional (todas).
+  Set<int>? _scopeSpecies(int? vg) {
+    if (vg == null) return null;
+    return _regionalOnly ? speciesInGame(vg).keys.toSet() : availableInGame(vg);
+  }
+
+  /// Número regional no escopo de um jogo (null fora da dex regional ou no Nacional).
+  int? regionalNumberOf(DexEntry e) {
+    final vg = scopeVg;
+    return vg == null ? null : speciesInGame(vg)[e.speciesId];
+  }
+
+  /// Regional com 3 dígitos no escopo de um jogo; nacional com 4 no Nacional e para quem
+  /// é obtível no jogo mas fica fora da dex regional.
   String numberLabel(DexEntry e) {
-    if (scopeVg == null) return Labels.dexNumber(e.speciesId);
-    return '#${numberOf(e).toString().padLeft(3, '0')}';
+    final n = regionalNumberOf(e);
+    if (n == null) return Labels.dexNumber(e.speciesId);
+    return '#${n.toString().padLeft(3, '0')}';
   }
 
   // ---------------------------------------------------------------------------
@@ -347,6 +381,12 @@ class PokedexController extends ChangeNotifier {
       (types.isNotEmpty || typeMode == TypeMode.single || typeMode == TypeMode.dual ? 1 : 0) -
       (capture == CaptureFilter.uncaptured ? 1 : 0);
 
+  void clearTypes() {
+    types.clear();
+    typeMode = TypeMode.any;
+    _changed();
+  }
+
   void clearFilters() {
     types.clear();
     typeMode = TypeMode.any;
@@ -464,6 +504,130 @@ class PokedexController extends ChangeNotifier {
     return r;
   }
 
+  // ---------------------------------------------------------------------------
+  // Persistência: filtros, ordem, exibição e escopo ficam salvos entre aberturas do app.
+
+  static const _settingsKey = 'pokedex_state';
+  Timer? _saveTimer;
+  String? _savedJson;
+  bool _restored = false;
+
+  /// Algo difere do padrão (o botão Resetar só acende nesse caso).
+  bool get isCustomized =>
+      activeFilterCount > 0 || _sort != SortKey.number || !_followAdventure || !_regionalOnly || search.text.isNotEmpty;
+
+  /// Volta busca, filtros, ordem e escopo ao padrão (o modo lista/grade é preferência e fica).
+  void resetAll() {
+    _followAdventure = true;
+    _pickedVg = null;
+    _lastVg = scopeVg;
+    _regionalOnly = true;
+    _sort = SortKey.number;
+    search.clear();
+    clearFilters();
+  }
+
+  Map<String, Object?> _toJson() => {
+        'grid': _grid,
+        'sort': _sort.name,
+        'showForms': _showForms,
+        'regionalOnly': _regionalOnly,
+        'followAdventure': _followAdventure,
+        'pickedVg': _pickedVg,
+        'types': types.toList(),
+        'typeMode': typeMode.name,
+        'generations': generations.toList(),
+        'categories': categories.toList(),
+        'regionalForms': regionalForms.toList(),
+        'capture': capture.name,
+        'shinyOnly': shinyOnly,
+        'favoritesOnly': favoritesOnly,
+        'marksMask': marksMask,
+        'canEvolveOnly': canEvolveOnly,
+        'ability': ability?.id,
+        'move': move?.id,
+        'eggGroups': eggGroups.toList(),
+        'triggers': triggers.toList(),
+        'statIndex': statIndex,
+        'statRange': statRange == null ? null : [statRange!.start, statRange!.end],
+      };
+
+  void _apply(Map<String, Object?> j) {
+    T pick<T extends Enum>(List<T> values, Object? name, T fallback) =>
+        values.where((v) => v.name == name).firstOrNull ?? fallback;
+    List<X> list<X>(Object? v) => [for (final x in (v as List? ?? const [])) x as X];
+    NamedRef? ref(List<NamedRef> all, Object? id) => id == null ? null : all.where((r) => r.id == id).firstOrNull;
+
+    _grid = j['grid'] as bool? ?? false;
+    _sort = pick(SortKey.values, j['sort'], SortKey.number);
+    _showForms = j['showForms'] as bool? ?? false;
+    _regionalOnly = j['regionalOnly'] as bool? ?? true;
+    _followAdventure = j['followAdventure'] as bool? ?? true;
+    final picked = j['pickedVg'] as int?;
+    _pickedVg = picked != null && dex.versionGroupsById.containsKey(picked) ? picked : null;
+    types
+      ..clear()
+      ..addAll(list<String>(j['types']).where(dex.types.containsKey));
+    typeMode = pick(TypeMode.values, j['typeMode'], TypeMode.any);
+    generations
+      ..clear()
+      ..addAll(list<int>(j['generations']));
+    categories
+      ..clear()
+      ..addAll(list<String>(j['categories']));
+    regionalForms
+      ..clear()
+      ..addAll(list<String>(j['regionalForms']));
+    capture = pick(CaptureFilter.values, j['capture'], CaptureFilter.all);
+    shinyOnly = j['shinyOnly'] as bool? ?? false;
+    favoritesOnly = j['favoritesOnly'] as bool? ?? false;
+    marksMask = j['marksMask'] as int? ?? 0;
+    canEvolveOnly = j['canEvolveOnly'] as bool? ?? false;
+    ability = ref(dex.abilities, j['ability']);
+    move = ref(dex.moves, j['move']);
+    eggGroups
+      ..clear()
+      ..addAll(list<int>(j['eggGroups']));
+    triggers
+      ..clear()
+      ..addAll(list<int>(j['triggers']));
+    final si = j['statIndex'] as int? ?? 6;
+    statIndex = si >= 0 && si < statBounds.length ? si : 6;
+    final range = j['statRange'] as List?;
+    statRange = range == null ? null : RangeValues((range[0] as num).toDouble(), (range[1] as num).toDouble());
+  }
+
+  Future<void> _restore() async {
+    try {
+      final row = await (app.user.select(app.user.settings)..where((s) => s.key.equals(_settingsKey))).getSingleOrNull();
+      if (row != null) {
+        _savedJson = row.value;
+        _apply(jsonDecode(row.value) as Map<String, Object?>);
+        _lastVg = scopeVg;
+        if (move != null) _fetchMove();
+      }
+    } catch (_) {
+      // Estado salvo ilegível (versão antiga): começa do padrão.
+    }
+    _restored = true;
+    _changed();
+  }
+
+  @override
+  void notifyListeners() {
+    super.notifyListeners();
+    if (!_restored) return;
+    _saveTimer?.cancel();
+    _saveTimer = Timer(const Duration(milliseconds: 400), _save);
+  }
+
+  Future<void> _save() async {
+    final json = jsonEncode(_toJson());
+    if (json == _savedJson) return;
+    _savedJson = json;
+    await app.user.into(app.user.settings).insertOnConflictUpdate(SettingsCompanion(key: const Value(_settingsKey), value: Value(json)));
+  }
+
   void _changed({bool resetScroll = true}) {
     _dirty = true;
     _resetScroll = _resetScroll || resetScroll;
@@ -493,6 +657,9 @@ class PokedexController extends ChangeNotifier {
   void _compute() {
     final vg = scopeVg;
     final inGame = vg == null ? null : speciesInGame(vg);
+    final scope = _scopeSpecies(vg);
+    final primary = vg == null ? null : _primaryIn(vg);
+    final game = vg == null ? null : dex.baseOf(vg);
     _suggestion = null;
     if (move != null && moveLoading) {
       _result = const [];
@@ -507,9 +674,13 @@ class PokedexController extends ChangeNotifier {
     final pool = <int>[];
     for (var i = 0; i < _entries.length; i++) {
       final e = _entries[i];
-      if (inGame != null && !inGame.containsKey(e.speciesId)) continue;
-      if (!_passes(e, inGame)) continue;
-      final hiddenForm = !e.isDefault && !formsOn;
+      if (scope != null && !scope.contains(e.speciesId)) continue;
+      // Totens nunca entram; megas e gmax só nos jogos que têm a mecânica.
+      if (e.identifier.contains('-totem')) continue;
+      if (game != null && ((e.isMega && !game.hasMegaEvolution) || (e.isGmax && !game.hasGigantamax))) continue;
+      if (!_passes(e, scope)) continue;
+      final isPrimary = primary == null ? e.isDefault : primary.contains(e.pokemonId);
+      final hiddenForm = !isPrimary && !formsOn;
       if (q.isEmpty) {
         if (!hiddenForm) hits.add(_Hit(i, 0));
         continue;
@@ -581,9 +752,11 @@ class PokedexController extends ChangeNotifier {
   }
 
   int Function(int, int) _comparator(Map<int, int>? inGame) {
+    // No escopo de um jogo: dex regional primeiro, depois quem só é obtível (pelo nº nacional).
     int number(int i) {
       final e = _entries[i];
-      return inGame?[e.speciesId] ?? e.speciesId;
+      if (inGame == null) return e.speciesId;
+      return inGame[e.speciesId] ?? (100000 + e.speciesId);
     }
 
     int byNumber(int a, int b) {
@@ -625,7 +798,7 @@ class PokedexController extends ChangeNotifier {
 
   bool _stamped(int speciesId) => (app.scoped[speciesId]?.count ?? 0) > 0;
 
-  bool _passes(DexEntry e, Map<int, int>? inGame) {
+  bool _passes(DexEntry e, Set<int>? scope) {
     if (types.isNotEmpty || typeMode == TypeMode.single || typeMode == TypeMode.dual) {
       final ok = switch (typeMode) {
         TypeMode.any => types.contains(e.type1) || types.contains(e.type2),
@@ -655,7 +828,7 @@ class PokedexController extends ChangeNotifier {
     if (canEvolveOnly) {
       if (!_stamped(sid)) return false;
       final next = _children[sid];
-      if (next == null || !next.any((c) => (inGame == null || inGame.containsKey(c)) && !_stamped(c))) return false;
+      if (next == null || !next.any((c) => (scope == null || scope.contains(c)) && !_stamped(c))) return false;
     }
     if (ability != null && !e.abilityIds.contains(ability!.id)) return false;
     if (move != null) {

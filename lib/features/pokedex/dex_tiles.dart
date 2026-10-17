@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../app/navigation.dart';
 import '../../core/data/models.dart';
-import '../../core/data/user_database.dart';
+import '../../core/data/user_database.dart' show Specimen;
 import '../../core/state/app_state.dart';
 import '../../core/state/scope.dart';
 import '../../core/theme/tokens.dart';
@@ -119,16 +119,18 @@ class _FlipSlotState extends State<FlipSlot> with SingleTickerProviderStateMixin
 
   @override
   Widget build(BuildContext context) {
+    // Estrutura fixa (translate + opacity) para o filho nunca ser recriado no fim da animação.
     final anim = _anim;
-    if (anim == null) return widget.child;
     return AnimatedBuilder(
-      animation: anim,
+      animation: anim ?? const AlwaysStoppedAnimation<double>(1),
       child: widget.child,
       builder: (context, child) {
-        if (!anim.isAnimating) return child!;
-        final t = Motion.emphasized.transform(anim.value);
-        final moved = Transform.translate(offset: _from * (1 - t), child: child);
-        return _entering ? Opacity(opacity: t, child: moved) : moved;
+        final running = anim != null && anim.isAnimating;
+        final t = running ? Motion.emphasized.transform(anim.value) : 1.0;
+        return Transform.translate(
+          offset: _from * (1 - t),
+          child: Opacity(opacity: _entering ? t : 1, child: child),
+        );
       },
     );
   }
@@ -145,6 +147,7 @@ void _snack(ScaffoldMessengerState messenger, String text, {Future<void> Functio
     ..hideCurrentSnackBar()
     ..showSnackBar(
       SnackBar(
+        persist: false,
         content: Text(text),
         duration: const Duration(seconds: 3),
         action: undo == null ? null : SnackBarAction(label: 'Desfazer', onPressed: () => undo()),
@@ -161,7 +164,7 @@ Future<void> tapStamp(BuildContext context, DexEntry e, List<int> Function() sib
   if (undo == null) {
     if (!context.mounted) return;
     _snack(messenger, 'Esse carimbo tem ficha preenchida. Remova em Meus exemplares.');
-    openDetail(context, e, siblings: siblings());
+    openDetail(context, e, siblings: siblings(), initialTab: 4);
     return;
   }
   _snack(messenger, was == StampState.empty ? '${e.name} carimbado' : 'Carimbo removido', undo: undo);
@@ -177,10 +180,10 @@ Future<void> holdStamp(BuildContext context, DexEntry e) async {
 }
 
 String _stampLabel(DexEntry e, StampState s) => switch (s) {
-      StampState.empty => 'Carimbar ${e.name}. Toque longo carimba em ouro',
-      StampState.stamped => '${e.name} carimbado. Toque para remover',
-      StampState.shiny => '${e.name} carimbado em ouro. Toque para remover',
-    };
+  StampState.empty => 'Carimbar ${e.name}. Toque longo carimba em ouro',
+  StampState.stamped => '${e.name} carimbado. Toque para remover',
+  StampState.shiny => '${e.name} carimbado em ouro. Toque para remover',
+};
 
 class _Stamp extends StatelessWidget {
   const _Stamp({required this.entry, required this.state, required this.size, required this.siblings});
@@ -191,31 +194,25 @@ class _Stamp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => StampSlot(
-        seed: entry.speciesId,
-        ink: TypeInks.of(entry.type1).ink,
-        state: state,
-        size: size,
-        semanticLabel: _stampLabel(entry, state),
-        onTap: () => tapStamp(context, entry, siblings),
-        onLongPress: () => holdStamp(context, entry),
-        child: Hero(
-          tag: spriteHeroTag(entry.pokemonId),
-          child: PokemonSprite(entry, shiny: state == StampState.shiny),
-        ),
-      );
+    seed: entry.speciesId,
+    ink: TypeInks.of(entry.type1).ink,
+    state: state,
+    size: size,
+    semanticLabel: _stampLabel(entry, state),
+    onTap: () => tapStamp(context, entry, siblings),
+    onLongPress: () => holdStamp(context, entry),
+    child: Hero(
+      tag: spriteHeroTag(entry.pokemonId),
+      child: PokemonSprite(entry, shiny: state == StampState.shiny),
+    ),
+  );
 }
 
 // -----------------------------------------------------------------------------
 // Linha da lista
 
 class DexRow extends StatelessWidget {
-  const DexRow({
-    super.key,
-    required this.entry,
-    required this.controller,
-    required this.app,
-    required this.siblings,
-  });
+  const DexRow({super.key, required this.entry, required this.controller, required this.app, required this.siblings});
 
   final DexEntry entry;
   final PokedexController controller;
@@ -269,14 +266,8 @@ class DexRow extends StatelessWidget {
                         ],
                       ),
                     ),
-                    if (mark.favorite || mark.marks != 0) ...[
-                      const SizedBox(width: Space.s),
-                      _MarkStrip(mark: mark),
-                    ],
-                    if (value != null) ...[
-                      const SizedBox(width: Space.m),
-                      Text(value, style: text.titleSmall),
-                    ],
+                    if (mark.favorite || mark.marks != 0) ...[const SizedBox(width: Space.s), _MarkStrip(mark: mark)],
+                    if (value != null) ...[const SizedBox(width: Space.m), Text(value, style: text.titleSmall)],
                   ],
                 ),
               ),
@@ -331,14 +322,7 @@ class _MarkStrip extends StatelessWidget {
 double cellExtent(double stamp) => stamp + Space.xs + 20 + Space.m;
 
 class DexCell extends StatelessWidget {
-  const DexCell({
-    super.key,
-    required this.entry,
-    required this.controller,
-    required this.app,
-    required this.stamp,
-    required this.siblings,
-  });
+  const DexCell({super.key, required this.entry, required this.controller, required this.app, required this.stamp, required this.siblings});
 
   final DexEntry entry;
   final PokedexController controller;
@@ -360,14 +344,7 @@ class DexCell extends StatelessWidget {
           children: [
             _Stamp(entry: e, state: state, size: stamp, siblings: siblings),
             const SizedBox(height: Space.xs),
-            SizedBox(
-              height: 20,
-              child: Text(
-                controller.numberLabel(e),
-                style: Theme.of(context).textTheme.labelMedium,
-                maxLines: 1,
-              ),
-            ),
+            SizedBox(height: 20, child: Text(controller.numberLabel(e), style: Theme.of(context).textTheme.labelMedium, maxLines: 1)),
           ],
         ),
       ),

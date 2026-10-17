@@ -18,6 +18,7 @@ class CollectionRow extends StatelessWidget {
     required this.subtitle,
     required this.onTap,
     this.trailing = const [],
+    this.hero = true,
   });
 
   final DexEntry entry;
@@ -26,14 +27,17 @@ class CollectionRow extends StatelessWidget {
   final VoidCallback onTap;
   final List<Widget> trailing;
 
+  /// Sprite com Hero para o detalhe. Desligado onde a mesma espécie aparece na rota de baixo.
+  final bool hero;
+
   @override
   Widget build(BuildContext context) {
     final text = Theme.of(context).textTheme;
     final state = summary.count == 0
         ? StampState.empty
         : summary.shiny
-            ? StampState.shiny
-            : StampState.stamped;
+        ? StampState.shiny
+        : StampState.stamped;
     final status = switch (state) {
       StampState.empty => 'sem carimbo',
       StampState.stamped => '${summary.count} ${summary.count == 1 ? 'exemplar' : 'exemplares'}',
@@ -51,10 +55,12 @@ class CollectionRow extends StatelessWidget {
               ink: TypeInks.of(entry.type1).ink,
               state: state,
               semanticLabel: '${entry.name}, $status',
-              child: Hero(
-                tag: spriteHeroTag(entry.pokemonId),
-                child: PokemonSprite(entry, shiny: state == StampState.shiny),
-              ),
+              child: hero
+                  ? Hero(
+                      tag: spriteHeroTag(entry.pokemonId),
+                      child: PokemonSprite(entry, shiny: state == StampState.shiny),
+                    )
+                  : PokemonSprite(entry, shiny: state == StampState.shiny),
             ),
             const SizedBox(width: Space.m),
             Expanded(
@@ -64,8 +70,7 @@ class CollectionRow extends StatelessWidget {
                 children: [
                   Text(Labels.dexNumber(entry.nationalNumber), style: text.bodySmall),
                   Text(entry.name, style: text.titleLarge, maxLines: 1, overflow: TextOverflow.ellipsis),
-                  if (subtitle != null)
-                    Text(subtitle!, style: text.bodySmall, maxLines: 1, overflow: TextOverflow.ellipsis),
+                  if (subtitle != null) Text(subtitle!, style: text.bodySmall, maxLines: 1, overflow: TextOverflow.ellipsis),
                 ],
               ),
             ),

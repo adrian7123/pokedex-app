@@ -6,6 +6,7 @@ import 'package:uuid/uuid.dart';
 
 import '../data/dex_repository.dart';
 import '../data/models.dart';
+import '../data/specimen_draft.dart';
 import '../data/user_database.dart';
 import '../widgets/stamp.dart';
 
@@ -108,7 +109,7 @@ class AppState extends ChangeNotifier {
     } else {
       await user.into(user.settings).insertOnConflictUpdate(SettingsCompanion.insert(key: 'active_adventure', value: id));
     }
-    activeAdventure = adventures.where((a) => a.id == id).firstOrNull;
+    activeAdventure = adventures.where((a) => a.id == id && !a.archived).firstOrNull;
     _recompute();
   }
 
@@ -179,8 +180,11 @@ class AppState extends ChangeNotifier {
     return () => _deleteById(id);
   }
 
+  /// Exemplar só carimbado, sem nenhum dado de ficha: o toque no carimbo pode removê-lo.
   bool _isBare(Specimen s) =>
-      s.nickname == null && s.level == null && s.nature == null && s.ivs == null && s.evs == null && s.moves == null && s.notes == null;
+      s.nickname == null && s.level == null && s.nature == null && s.abilityId == null && s.gender == null &&
+      s.ballItemId == null && s.caughtWhere == null && s.heldItemId == null && s.ivs == null && s.evs == null &&
+      s.stats == null && s.moves == null && s.teraType == null && s.notes == null;
 
   Future<String> _insert(DexEntry entry, {required bool shiny}) async {
     final id = _uuid.v4();
@@ -202,6 +206,19 @@ class AppState extends ChangeNotifier {
   Future<void> deleteSpecimen(String id) => _deleteById(id);
 
   Future<void> saveSpecimen(SpecimensCompanion data) => user.into(user.specimens).insertOnConflictUpdate(data);
+
+  /// Grava a ficha: com [existingId] atualiza aquele exemplar (mantém a data de captura),
+  /// sem ele cria um novo na aventura do rascunho. Devolve o id gravado.
+  Future<String> saveDraft(SpecimenDraft draft, {String? existingId}) async {
+    final existing = existingId == null ? null : _specimens.where((s) => s.id == existingId).firstOrNull;
+    final id = existing?.id ?? _uuid.v4();
+    await user.into(user.specimens).insertOnConflictUpdate(
+          draft.toCompanion(id: id, caughtAt: existing?.caughtAt ?? DateTime.now()),
+        );
+    return id;
+  }
+
+  Specimen? specimenById(String id) => _specimens.where((s) => s.id == id).firstOrNull;
 
   // ---------------------------------------------------------------------------
   // Marcas

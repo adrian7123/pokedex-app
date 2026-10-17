@@ -21,6 +21,7 @@ class DetailHeader extends StatelessWidget {
     required this.shiny,
     required this.game,
     required this.inDex,
+    this.gameForm,
     required this.onPickGame,
     required this.onOpenSpecimens,
   });
@@ -29,6 +30,9 @@ class DetailHeader extends StatelessWidget {
   final bool shiny;
   final VersionGroup game;
   final bool inDex;
+
+  /// Nome da variedade que representa a espécie neste jogo, quando difere da aberta.
+  final String? gameForm;
   final VoidCallback onPickGame;
   final VoidCallback onOpenSpecimens;
 
@@ -102,7 +106,10 @@ class DetailHeader extends StatelessWidget {
             _GameButton(game: game, onTap: onPickGame),
             if (!inDex) ...[
               const SizedBox(height: Space.xs),
-              InfoNote('Não aparece na Pokédex de ${game.name}'),
+              InfoNote('Não aparece em ${game.name}'),
+            ] else if (gameForm != null) ...[
+              const SizedBox(height: Space.xs),
+              InfoNote('Neste jogo aparece como $gameForm'),
             ],
           ],
         ),
@@ -348,7 +355,6 @@ class _GameButton extends StatelessWidget {
 /// Folha para escolher o jogo desta tela. Devolve o version group escolhido.
 Future<int?> pickGame(
   BuildContext context, {
-  required int speciesId,
   required int selected,
   required bool Function(int vgId) inDex,
 }) {
@@ -397,7 +403,7 @@ Future<int?> pickGame(
                               if (g.id == adventureGame)
                                 Text('Jogo da aventura ativa', style: text.bodySmall)
                               else if (!inDex(g.id))
-                                Text('Fora da Pokédex deste jogo', style: text.bodySmall),
+                                Text('Não aparece neste jogo', style: text.bodySmall),
                             ],
                           ),
                         ),

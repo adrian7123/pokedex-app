@@ -35,13 +35,25 @@ class DexRepository {
   /// tipo atacante → tipo defensor → fator (0/50/100/200)
   late final Map<String, Map<String, int>> efficacy;
 
+  /// pokedexId → (speciesId → pokemon.id da forma que aparece naquela dex: Meowth de Galar em Galar).
+  late final Map<int, Map<int, int>> primaryForms;
+
+  late final List<Nature> natures;
+
+  /// Pokébolas (padrão, especiais e Apricorn), por nome.
+  late final List<ItemRef> balls;
+
+  /// Itens que dá para segurar, por nome (ficha do exemplar).
+  late final List<ItemRef> holdableItems;
+  late final Map<int, Set<int>> _available;
+
   Future<void> load() async {
     final results = await Future.wait([
       db.rows('SELECT id, identifier, name_pt FROM types ORDER BY id'),
       db.rows('SELECT id, identifier, main_region_id FROM generations ORDER BY id'),
       db.rows('SELECT id, identifier, name FROM regions'),
-      db.rows('SELECT id, identifier, name, generation_id, sort_order, parent_id, is_dlc FROM version_groups ORDER BY sort_order'),
-      db.rows('SELECT id, identifier, name, version_group_id FROM versions ORDER BY id'),
+      db.rows('SELECT id, identifier, name, generation_id, sort_order, parent_id, is_dlc, is_closed_dex, has_mega_evolution, route_source FROM version_groups ORDER BY sort_order'),
+      db.rows('SELECT id, identifier, name, version_group_id, parent_version_id FROM versions ORDER BY id'),
       db.rows('SELECT pokedex_id, version_group_id FROM pokedex_version_groups'),
       db.rows('SELECT id, identifier, name, region_id, is_main_series, size FROM pokedexes'),
       db.rows('SELECT pokedex_id, species_id, number FROM pokedex_entries'),
@@ -63,6 +75,14 @@ class DexRepository {
       db.rows('SELECT id, name FROM evolution_triggers ORDER BY id'),
       db.rows('''SELECT a.identifier AS atk, d.identifier AS def, e.factor FROM type_efficacy e
                  JOIN types a ON a.id = e.attacking_type_id JOIN types d ON d.id = e.defending_type_id'''),
+      db.rows('SELECT pokedex_id, species_id, pokemon_id FROM pokedex_entry_forms WHERE is_primary = 1'),
+      db.rows('SELECT version_group_id, species_id FROM version_group_species'),
+      db.rows('SELECT id, identifier, name, increased_stat, decreased_stat FROM natures ORDER BY name'),
+      db.rows('''SELECT id, identifier, name, has_sprite FROM items
+                 WHERE category_id IN (SELECT id FROM item_categories
+                                       WHERE identifier IN ('standard-balls', 'special-balls', 'apricorn-balls'))
+                 ORDER BY name'''),
+      db.rows('SELECT id, identifier, name, has_sprite FROM items WHERE is_holdable = 1 ORDER BY name'),
     ]);
 
     typesById = {
@@ -77,7 +97,13 @@ class DexRepository {
 
     final versionsByVg = <int, List<Version>>{};
     for (final r in results[4]) {
-      final v = Version(id: r.i('id'), identifier: r.s('identifier'), name: r.s('name'), versionGroupId: r.i('version_group_id'));
+      final v = Version(
+        id: r.i('id'),
+        identifier: r.s('identifier'),
+        name: r.s('name'),
+        versionGroupId: r.i('version_group_id'),
+        parentVersionId: r.ni('parent_version_id'),
+      );
       versionsByVg.putIfAbsent(v.versionGroupId, () => []).add(v);
     }
     final dexByVg = <int, List<int>>{};
@@ -96,6 +122,9 @@ class DexRepository {
           isDlc: r.b('is_dlc'),
           versions: versionsByVg[r.i('id')] ?? const [],
           pokedexIds: (dexByVg[r.i('id')] ?? [])..sort(),
+          isClosedDex: r.b('is_closed_dex'),
+          hasMegaEvolution: r.b('has_mega_evolution'),
+          routeSource: r.s('route_source'),
         ),
     ];
     versionGroupsById = {for (final v in versionGroups) v.id: v};
@@ -154,6 +183,28 @@ class DexRepository {
     for (final r in results[16]) {
       efficacy.putIfAbsent(r.s('atk'), () => {})[r.s('def')] = r.i('factor');
     }
+    primaryForms = {};
+    for (final r in results[17]) {
+      primaryForms.putIfAbsent(r.i('pokedex_id'), () => {})[r.i('species_id')] = r.i('pokemon_id');
+    }
+    _available = {};
+    for (final r in results[18]) {
+      _available.putIfAbsent(r.i('version_group_id'), () => {}).add(r.i('species_id'));
+    }
+    const statIdx = {'hp': 0, 'attack': 1, 'defense': 2, 'sp_attack': 3, 'sp_defense': 4, 'speed': 5};
+    natures = [
+      for (final r in results[19])
+        Nature(
+          id: r.i('id'),
+          identifier: r.s('identifier'),
+          name: r.s('name'),
+          increased: statIdx[r.ns('increased_stat')],
+          decreased: statIdx[r.ns('decreased_stat')],
+        ),
+    ];
+    ItemRef item(QueryRow r) => ItemRef(id: r.i('id'), identifier: r.s('identifier'), name: r.s('name'), hasSprite: r.b('has_sprite'));
+    balls = [for (final r in results[20]) item(r)];
+    holdableItems = [for (final r in results[21]) item(r)];
   }
 
   DexEntry _entry(QueryRow r, Map<int, Set<String>> cats, Map<int, Set<int>> eggs, Map<int, Set<int>> triggers) {
@@ -232,6 +283,25 @@ class DexRepository {
     return out;
   }
 
+  /// Variedade que representa a espécie no jogo (forma regional da dex), ou a padrão.
+  int formInGame(int vgId, int speciesId) {
+    for (final dexId in pokedexIdsFor(vgId)) {
+      final id = primaryForms[dexId]?[speciesId];
+      if (id != null) return id;
+    }
+    return defaultBySpecies[speciesId]?.pokemonId ?? speciesId;
+  }
+
+  /// Espécies obtíveis no jogo (dex regional, encontros ou Nacional do jogo), incluindo DLCs.
+  Set<int> availableInGame(int vgId) {
+    final base = baseOf(vgId);
+    return {
+      ...?_available[base.id],
+      for (final vg in versionGroups)
+        if (vg.parentId == base.id && vg.isDlc) ...?_available[vg.id],
+    };
+  }
+
   /// DLCs continuam a numeração depois da dex base (ex.: Kitakami depois de Paldea).
   int _dexOffset(int vgId, int dexId) {
     final ids = pokedexIdsFor(vgId);
@@ -248,7 +318,7 @@ class DexRepository {
 
   Future<SpeciesDetail> speciesDetail(int speciesId, int pokemonId) async {
     final rows = await Future.wait([
-      db.rows('''SELECT s.gender_rate, s.capture_rate, s.base_happiness, s.hatch_counter, g.name AS growth
+      db.rows('''SELECT s.gender_rate, s.capture_rate, s.base_happiness, s.hatch_counter, g.identifier AS growth
                  FROM species s LEFT JOIN growth_rates g ON g.id = s.growth_rate_id WHERE s.id = ?''', [speciesId]),
       db.rows('''SELECT e.name FROM species_egg_groups se JOIN egg_groups e ON e.id = se.egg_group_id
                  WHERE se.species_id = ? ORDER BY e.id''', [speciesId]),
@@ -393,8 +463,10 @@ class DexRepository {
       rules = [for (final r in defaults) _rule(r, fallback: false)];
     } else {
       final base = baseOf(vgId).id;
+      // Amizade exigida varia por geração: a tabela por jogo prevalece sobre o valor cru da regra.
+      final perGame = select.replaceFirst('e.min_happiness,', 'COALESCE(v.min_happiness, e.min_happiness) AS min_happiness,');
       final inGame = await db.rows(
-        '$select JOIN evolution_version_groups v ON v.evolution_id = e.id '
+        '$perGame JOIN evolution_version_groups v ON v.evolution_id = e.id '
         'WHERE e.evolution_chain_id = ? AND v.version_group_id = ? ORDER BY e.id',
         [chainId, base],
       );
@@ -415,8 +487,11 @@ class DexRepository {
       LEFT JOIN items it ON it.id = fc.item_id
       WHERE s.evolution_chain_id = ? AND (p.is_mega = 1 OR p.is_gmax = 1)
       ORDER BY p.is_gmax, p.id''', [chainId]);
+    final game = vgId == null ? null : baseOf(vgId);
     final formChanges = <int, List<FormChange>>{};
     for (final r in forms) {
+      // No contexto de um jogo, só formas cuja mecânica existe nele.
+      if (game != null && (r.b('is_gmax') ? !game.hasGigantamax : !game.hasMegaEvolution)) continue;
       formChanges.putIfAbsent(r.i('species_id'), () => []).add(
             FormChange(
               pokemonId: r.i('id'),
@@ -485,9 +560,9 @@ class DexRepository {
         JOIN encounter_methods em ON em.id = e.method_id
         LEFT JOIN encounter_conditions ec ON ec.encounter_id = e.id
         LEFT JOIN encounter_condition_values cv ON cv.id = ec.condition_value_id AND cv.is_default = 0
-        WHERE e.pokemon_id = ? AND e.version_id = ?
+        WHERE e.pokemon_id = ? AND (e.version_id = ? OR e.version_id IN (SELECT id FROM versions WHERE parent_version_id = ?))
         GROUP BY e.id
-        ORDER BY la.location_id, em.sort_order, e.min_level''', [pokemonId, v.id]);
+        ORDER BY la.location_id, em.sort_order, e.min_level''', [pokemonId, v.id, v.id]);
       if (rows.isEmpty) continue;
       out[v] = [
         for (final r in rows)

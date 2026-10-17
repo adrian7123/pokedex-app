@@ -9,25 +9,21 @@ class ListsStore {
   final UserDatabase db;
   static const _uuid = Uuid();
 
-  Stream<List<CustomList>> watchLists() =>
-      (db.select(db.customLists)..orderBy([(l) => OrderingTerm.asc(l.createdAt)])).watch();
+  Stream<List<CustomList>> watchLists() => (db.select(db.customLists)..orderBy([(l) => OrderingTerm.asc(l.createdAt)])).watch();
 
-  Stream<CustomList?> watchList(String id) =>
-      (db.select(db.customLists)..where((l) => l.id.equals(id))).watchSingleOrNull();
+  Stream<CustomList?> watchList(String id) => (db.select(db.customLists)..where((l) => l.id.equals(id))).watchSingleOrNull();
 
   /// listId → quantidade de Pokémon.
   Stream<Map<String, int>> watchCounts() => db
-      .customSelect(
-        'SELECT list_id, COUNT(*) AS n FROM custom_list_items GROUP BY list_id',
-        readsFrom: {db.customListItems},
-      )
+      .customSelect('SELECT list_id, COUNT(*) AS n FROM custom_list_items GROUP BY list_id', readsFrom: {db.customListItems})
       .watch()
       .map((rows) => {for (final r in rows) r.read<String>('list_id'): r.read<int>('n')});
 
-  Stream<List<CustomListItem>> watchItems(String listId) => (db.select(db.customListItems)
-        ..where((i) => i.listId.equals(listId))
-        ..orderBy([(i) => OrderingTerm.asc(i.position)]))
-      .watch();
+  Stream<List<CustomListItem>> watchItems(String listId) =>
+      (db.select(db.customListItems)
+            ..where((i) => i.listId.equals(listId))
+            ..orderBy([(i) => OrderingTerm.asc(i.position)]))
+          .watch();
 
   Future<String> create(String name) async {
     final id = _uuid.v4();
@@ -42,14 +38,16 @@ class ListsStore {
   Future<void> delete(String id) => (db.delete(db.customLists)..where((l) => l.id.equals(id))).go();
 
   Future<void> add(String listId, int pokemonId) async {
-    final row = await db.customSelect(
-      'SELECT COALESCE(MAX(position), 0) AS p FROM custom_list_items WHERE list_id = ?',
-      variables: [Variable.withString(listId)],
-      readsFrom: {db.customListItems},
-    ).getSingle();
-    await db.into(db.customListItems).insertOnConflictUpdate(
-          CustomListItemsCompanion.insert(listId: listId, pokemonId: pokemonId, position: row.read<int>('p') + 1),
-        );
+    final row = await db
+        .customSelect(
+          'SELECT COALESCE(MAX(position), 0) AS p FROM custom_list_items WHERE list_id = ?',
+          variables: [Variable.withString(listId)],
+          readsFrom: {db.customListItems},
+        )
+        .getSingle();
+    await db
+        .into(db.customListItems)
+        .insertOnConflictUpdate(CustomListItemsCompanion.insert(listId: listId, pokemonId: pokemonId, position: row.read<int>('p') + 1));
   }
 
   Future<void> remove(String listId, int pokemonId) =>

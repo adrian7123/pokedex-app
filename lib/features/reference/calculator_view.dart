@@ -142,8 +142,7 @@ class _CalculatorViewState extends State<CalculatorView> {
             spacing: Space.s,
             runSpacing: 0,
             children: [
-              for (final t in widget.types)
-                _TypeToggle(type: t, name: nameOf(t), selected: _defs.contains(t), onTap: () => _toggle(t)),
+              for (final t in widget.types) _TypeToggle(type: t, name: nameOf(t), selected: _defs.contains(t), onTap: () => _toggle(t)),
             ],
           ),
           const SizedBox(height: Space.xxl),
@@ -232,16 +231,10 @@ class _TypeToggle extends StatelessWidget {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                if (selected) ...[
-                  Icon(Icons.check_rounded, size: 16, color: ink.text),
-                  const SizedBox(width: Space.xs),
-                ],
+                if (selected) ...[Icon(Icons.check_rounded, size: 16, color: ink.text), const SizedBox(width: Space.xs)],
                 TypeIcon(type, size: 16),
                 const SizedBox(width: 6),
-                Text(
-                  name,
-                  style: Theme.of(context).textTheme.titleSmall?.copyWith(color: ink.text),
-                ),
+                Text(name, style: Theme.of(context).textTheme.titleSmall?.copyWith(color: ink.text)),
               ],
             ),
           ),
@@ -274,7 +267,10 @@ class _Result extends StatelessWidget {
     for (final a in types) {
       byFactor.putIfAbsent(dex.damageAgainst(a, defs), () => []).add(a);
     }
-    final shown = [for (final g in _groups) if (byFactor[g.$1]?.isNotEmpty ?? false) g];
+    final shown = [
+      for (final g in _groups)
+        if (byFactor[g.$1]?.isNotEmpty ?? false) g,
+    ];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -288,10 +284,7 @@ class _Result extends StatelessWidget {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                SizedBox(
-                  width: 56,
-                  child: Text(shown[i].$2, style: text.headlineMedium?.copyWith(height: 1)),
-                ),
+                SizedBox(width: 56, child: Text(shown[i].$2, style: text.headlineMedium?.copyWith(height: 1))),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,

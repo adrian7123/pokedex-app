@@ -85,12 +85,7 @@ class _MatrixViewState extends State<MatrixView> {
                             onLongPressMoveUpdate: (d) => _pick(d.localPosition, cell),
                             child: CustomPaint(
                               size: Size.square(cell * n),
-                              painter: _MatrixPainter(
-                                types: types,
-                                efficacy: dex.efficacy,
-                                cell: cell,
-                                selected: sel,
-                              ),
+                              painter: _MatrixPainter(types: types, efficacy: dex.efficacy, cell: cell, selected: sel),
                             ),
                           ),
                         ),
@@ -118,18 +113,18 @@ class _Readout extends StatelessWidget {
   final String Function(String) nameOf;
 
   static String factorLabel(int f) => switch (f) {
-        0 => '0×',
-        50 => '½×',
-        200 => '2×',
-        _ => '1×',
-      };
+    0 => '0×',
+    50 => '½×',
+    200 => '2×',
+    _ => '1×',
+  };
 
   static String factorWord(int f) => switch (f) {
-        0 => 'sem efeito',
-        50 => 'pouco efetivo',
-        200 => 'super efetivo',
-        _ => 'dano normal',
-      };
+    0 => 'sem efeito',
+    50 => 'pouco efetivo',
+    200 => 'super efetivo',
+    _ => 'dano normal',
+  };
 
   @override
   Widget build(BuildContext context) {
@@ -158,7 +153,11 @@ class _Readout extends StatelessWidget {
             TypeIcon(atk, size: 18),
             const SizedBox(width: Space.xs),
             Flexible(
-              child: Text(nameOf(atk), style: text.titleMedium?.copyWith(color: TypeInks.of(atk).text), overflow: TextOverflow.ellipsis),
+              child: Text(
+                nameOf(atk),
+                style: text.titleMedium?.copyWith(color: TypeInks.of(atk).text),
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
             const Padding(
               padding: EdgeInsets.symmetric(horizontal: Space.s),
@@ -167,12 +166,18 @@ class _Readout extends StatelessWidget {
             TypeIcon(def, size: 18),
             const SizedBox(width: Space.xs),
             Flexible(
-              child: Text(nameOf(def), style: text.titleMedium?.copyWith(color: TypeInks.of(def).text), overflow: TextOverflow.ellipsis),
+              child: Text(
+                nameOf(def),
+                style: text.titleMedium?.copyWith(color: TypeInks.of(def).text),
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
             const SizedBox(width: Space.m),
             Text(factorLabel(f), style: text.headlineMedium?.copyWith(height: 1)),
             const SizedBox(width: Space.s),
-            Flexible(child: Text(factorWord(f), style: text.bodySmall, overflow: TextOverflow.ellipsis)),
+            Flexible(
+              child: Text(factorWord(f), style: text.bodySmall, overflow: TextOverflow.ellipsis),
+            ),
           ],
         ),
       ),
@@ -187,13 +192,16 @@ class _Legend extends StatelessWidget {
   Widget build(BuildContext context) {
     final style = Theme.of(context).textTheme.bodySmall;
     Widget item(int factor, String label) => Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            CustomPaint(size: const Size.square(18), painter: _CellPainter(factor: factor, ink: TypeInks.of('fire').ink)),
-            const SizedBox(width: Space.s),
-            Text(label, style: style),
-          ],
-        );
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        CustomPaint(
+          size: const Size.square(18),
+          painter: _CellPainter(factor: factor, ink: TypeInks.of('fire').ink),
+        ),
+        const SizedBox(width: Space.s),
+        Text(label, style: style),
+      ],
+    );
     return Wrap(
       spacing: Space.l,
       runSpacing: Space.s,

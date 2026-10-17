@@ -39,6 +39,9 @@ class VersionGroup {
     required this.isDlc,
     required this.versions,
     required this.pokedexIds,
+    required this.isClosedDex,
+    required this.hasMegaEvolution,
+    required this.routeSource,
   });
   final int id;
   final String identifier;
@@ -50,16 +53,35 @@ class VersionGroup {
   final List<Version> versions;
   final List<int> pokedexIds;
 
+  /// Jogo que não tem Pokédex Nacional (só a regional + DLC).
+  final bool isClosedDex;
+  final bool hasMegaEvolution;
+
+  /// Origem das rotas do Nuzlocke: `encounters`, `region-locations` ou `free-text`.
+  final String routeSource;
+
+  /// Dynamax/Gigantamax só existe em Sword/Shield.
+  bool get hasGigantamax => identifier == 'sword-shield';
+
   /// Jogos que viram "aventura": série principal, sem DLC (que herda do jogo base) e sem variantes JP.
   bool get isPlayable => !isDlc && parentId == null && identifier != 'champions' && identifier != 'colosseum' && identifier != 'xd';
 }
 
 class Version {
-  const Version({required this.id, required this.identifier, required this.name, required this.versionGroupId});
+  const Version({
+    required this.id,
+    required this.identifier,
+    required this.name,
+    required this.versionGroupId,
+    this.parentVersionId,
+  });
   final int id;
   final String identifier;
   final String name;
   final int versionGroupId;
+
+  /// Versão de DLC aponta para o cartucho base (ex.: Shield + Isle of Armor → Shield).
+  final int? parentVersionId;
 }
 
 class Pokedex {
@@ -370,4 +392,17 @@ class SpeciesDetail {
   /// stat (pt-BR) → valor
   final Map<String, int> evYield;
   final int? baseExperience;
+}
+
+/// Natureza: [increased]/[decreased] são índices em stats (0 hp … 5 speed); null = neutra.
+class Nature {
+  const Nature({required this.id, required this.identifier, required this.name, this.increased, this.decreased});
+  final int id;
+  final String identifier;
+  final String name;
+  final int? increased;
+  final int? decreased;
+
+  /// Multiplicador da natureza no stat [i] (1.1, 0.9 ou 1.0). PS nunca muda.
+  double factor(int i) => i == increased ? 1.1 : (i == decreased ? 0.9 : 1.0);
 }

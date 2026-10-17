@@ -46,6 +46,12 @@ class Specimens extends Table {
 
   /// Até 4 move ids separados por vírgula.
   TextColumn get moves => text().nullable()();
+
+  /// Stats vistos no jogo "hp,atk,def,spa,spd,spe" (PS máximo), para estimar IVs.
+  TextColumn get stats => text().nullable()();
+
+  /// Tipo Tera (Scarlet/Violet), identifier do tipo.
+  TextColumn get teraType => text().nullable()();
   TextColumn get notes => text().nullable()();
 
   /// Posição no time (1–6) da aventura; null fora do time.
@@ -60,6 +66,7 @@ class Specimens extends Table {
 }
 
 /// Marcas globais por espécie: favorito e símbolos livres.
+@DataClassName('SpeciesMarkRow')
 class SpeciesMarks extends Table {
   IntColumn get speciesId => integer()();
   BoolColumn get favorite => boolean().withDefault(const Constant(false))();
@@ -122,7 +129,7 @@ class UserDatabase extends _$UserDatabase {
   UserDatabase([QueryExecutor? executor]) : super(executor ?? driftDatabase(name: 'user'));
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -130,6 +137,12 @@ class UserDatabase extends _$UserDatabase {
           await m.createAll();
           await customStatement('CREATE INDEX specimens_species ON specimens (species_id)');
           await customStatement('CREATE INDEX specimens_adventure ON specimens (adventure_id)');
+        },
+        onUpgrade: (m, from, to) async {
+          if (from < 2) {
+            await m.addColumn(specimens, specimens.stats);
+            await m.addColumn(specimens, specimens.teraType);
+          }
         },
         beforeOpen: (_) async => customStatement('PRAGMA foreign_keys = ON'),
       );

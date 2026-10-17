@@ -63,6 +63,8 @@ android {
                 logger.warn("[signing] key.properties não encontrado em $keyPropertiesFile: release assinado com a chave de DEBUG")
                 signingConfigs.getByName("debug")
             }
+            // O plugin do ML Kit referencia os reconhecedores de outros alfabetos, que não vão no app.
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }
 }

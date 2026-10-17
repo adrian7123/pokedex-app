@@ -113,6 +113,8 @@ ThemeData buildAppTheme() {
       checkmarkColor: Ramp.paper,
       side: const BorderSide(color: Ramp.n2),
       shape: const StadiumBorder(),
+      // M3 usa labelStyle em todos os estados e mescla com os padrões (um WidgetStateTextStyle perde a
+      // cor nessa mescla). O chip selecionado passa `secondaryLabelStyle` explicitamente.
       labelStyle: _t(TypeSize.caption, FontWeight.w500, color: Ramp.n6),
       secondaryLabelStyle: _t(TypeSize.caption, FontWeight.w700, color: Ramp.paper),
       padding: const EdgeInsets.symmetric(horizontal: Space.s),

@@ -143,8 +143,15 @@ class _StampSlotState extends State<StampSlot> with TickerProviderStateMixin {
                               ),
                             ),
                           ),
+                        // Os sprites da PokeAPI têm ~30% de margem transparente: amplia e recorta no
+                        // miolo do anel para o Pokémon ocupar o carimbo.
                         if (widget.child != null)
-                          SizedBox.square(dimension: size * .78, child: widget.child),
+                          ClipOval(
+                            child: SizedBox.square(
+                              dimension: size * .84,
+                              child: Transform.scale(scale: 1.5, child: widget.child),
+                            ),
+                          ),
                         if (_sparkle.isAnimating)
                           CustomPaint(size: Size.square(size), painter: _Sparkle(progress: _sparkle.value)),
                       ],

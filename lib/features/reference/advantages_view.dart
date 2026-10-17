@@ -27,13 +27,13 @@ class _AdvantagesSliverState extends State<AdvantagesSliver> {
     final types = widget.types;
 
     List<String> attacking(String t, int factor) => [
-          for (final d in types)
-            if ((eff[t]?[d] ?? 100) == factor) d,
-        ];
+      for (final d in types)
+        if ((eff[t]?[d] ?? 100) == factor) d,
+    ];
     List<String> defending(String t, int factor) => [
-          for (final a in types)
-            if ((eff[a]?[t] ?? 100) == factor) a,
-        ];
+      for (final a in types)
+        if ((eff[a]?[t] ?? 100) == factor) a,
+    ];
 
     return SliverList.builder(
       itemCount: types.length + 1,
@@ -73,7 +73,10 @@ class _Header extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(Space.gutter, 0, Space.gutter, Space.s),
       child: Row(
         children: [
-          SizedBox(width: _typeColumn, child: Text('Tipo', style: style)),
+          SizedBox(
+            width: _typeColumn,
+            child: Text('Tipo', style: style),
+          ),
           const SizedBox(width: Space.m),
           Expanded(child: Text('Forte contra', style: style)),
           const SizedBox(width: Space.m),
@@ -209,11 +212,11 @@ class _Group extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(label, style: Theme.of(context).textTheme.titleSmall),
-          const SizedBox(height: Space.xs),
-          TypeDiscWrap(types),
-        ],
-      );
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text(label, style: Theme.of(context).textTheme.titleSmall),
+      const SizedBox(height: Space.xs),
+      TypeDiscWrap(types),
+    ],
+  );
 }

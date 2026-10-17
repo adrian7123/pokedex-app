@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../app/navigation.dart';
 import '../../app/shell.dart';
-import '../../core/data/models.dart';
+import '../../core/data/user_database.dart' show CustomList;
 import '../../core/state/app_state.dart';
 import '../../core/state/scope.dart';
 import '../../core/theme/tokens.dart';
@@ -59,9 +59,7 @@ class _CollectionScreenState extends State<CollectionScreen> {
       _Segment.shiny => state.global.entries.where((e) => e.value.shiny).map((e) => e.key),
       _Segment.favorites => state.marks.entries.where((e) => e.value.favorite).map((e) => e.key),
     };
-    final rows = [
-      for (final id in ids) ?dex.defaultBySpecies[id],
-    ]..sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
+    final rows = [for (final id in ids) ?dex.defaultBySpecies[id]]..sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
     final siblings = [for (final e in rows) e.pokemonId];
 
     return Scaffold(
@@ -119,7 +117,7 @@ class _CollectionScreenState extends State<CollectionScreen> {
                         entry: e,
                         summary: state.global[e.speciesId] ?? CaptureSummary.none,
                         subtitle: _originLine(origins[e.speciesId]),
-                        onTap: () => openDetail(context, e, siblings: siblings),
+                        onTap: () => openDetail(context, e, siblings: siblings, initialTab: 4),
                         trailing: [_FavoriteButton(speciesId: e.speciesId, name: e.name, favorite: favorite)],
                       ),
                       if (i < rows.length - 1) const Perforation(indent: Space.gutter + 52 + Space.m),
@@ -153,18 +151,28 @@ class _Totals extends StatelessWidget {
   Widget build(BuildContext context) {
     final text = Theme.of(context).textTheme;
     final big = text.headlineMedium;
-    final soft = text.headlineMedium?.copyWith(color: Ramp.n4, fontWeight: FontWeight.w700);
+    final soft = text.headlineMedium?.copyWith(color: Ramp.n5, fontWeight: FontWeight.w700);
     final label = text.bodyMedium;
     Widget figure(List<InlineSpan> number, String word) => Text.rich(
-          TextSpan(children: [...number, TextSpan(text: ' $word', style: label)]),
-        );
+      TextSpan(
+        children: [
+          ...number,
+          TextSpan(text: ' $word', style: label),
+        ],
+      ),
+    );
     return Wrap(
       spacing: Space.xl,
       runSpacing: Space.s,
       crossAxisAlignment: WrapCrossAlignment.end,
       children: [
         figure([TextSpan(text: '$species', style: big), TextSpan(text: '/$of', style: soft)], 'espécies carimbadas'),
-        figure([TextSpan(text: '$shiny', style: big?.copyWith(color: Gold.text))], 'shiny'),
+        figure([
+          TextSpan(
+            text: '$shiny',
+            style: big?.copyWith(color: Gold.text),
+          ),
+        ], 'shiny'),
         figure([TextSpan(text: '$specimens', style: big)], specimens == 1 ? 'exemplar' : 'exemplares'),
       ],
     );
@@ -179,12 +187,12 @@ class _FavoriteButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => IconButton(
-        tooltip: favorite ? 'Tirar $name dos favoritos' : 'Favoritar $name',
-        isSelected: favorite,
-        onPressed: () => AppScope.read(context).toggleFavorite(speciesId),
-        icon: const Icon(Icons.star_outline_rounded, color: Ramp.n5),
-        selectedIcon: const Icon(Icons.star_rounded, color: Gold.ink),
-      );
+    tooltip: favorite ? 'Tirar $name dos favoritos' : 'Favoritar $name',
+    isSelected: favorite,
+    onPressed: () => AppScope.read(context).toggleFavorite(speciesId),
+    icon: const Icon(Icons.star_outline_rounded, color: Ramp.n5),
+    selectedIcon: const Icon(Icons.star_rounded, color: Gold.ink),
+  );
 }
 
 class _EmptySegment extends StatelessWidget {
@@ -195,10 +203,7 @@ class _EmptySegment extends StatelessWidget {
   Widget build(BuildContext context) {
     final text = Theme.of(context).textTheme;
     final (title, body) = switch (segment) {
-      _Segment.all => (
-          'Nada carimbado ainda',
-          'Na Pokédex, toque no anel de um Pokémon para carimbar. Toque longo carimba shiny.',
-        ),
+      _Segment.all => ('Nada carimbado ainda', 'Na Pokédex, toque no anel de um Pokémon para carimbar. Toque longo carimba shiny.'),
       _Segment.shiny => ('Nenhum shiny ainda', 'Toque longo no anel de um Pokémon carimba em ouro.'),
       _Segment.favorites => ('Nenhum favorito', 'Toque na estrela de um Pokémon da coleção para guardá-lo aqui.'),
     };
@@ -230,22 +235,8 @@ class _ListsSection extends StatefulWidget {
 
 class _ListsSectionState extends State<_ListsSection> {
   late final ListsStore _store = ListsStore(AppScope.read(context).user);
-  late final Stream<List<CustomListView>> _stream = _combine();
-
-  Stream<List<CustomListView>> _combine() async* {
-    // Junta listas e contagens; qualquer mudança em uma das duas reemite.
-    List<CustomListView> build(List lists, Map<String, int> counts) => [
-          for (final l in lists) CustomListView(id: l.id as String, name: l.name as String, count: counts[l.id] ?? 0),
-        ];
-    var lists = const [];
-    var counts = const <String, int>{};
-    final merged = StreamGroup2(_store.watchLists(), _store.watchCounts());
-    await for (final ev in merged.stream) {
-      if (ev.$1 != null) lists = ev.$1!;
-      if (ev.$2 != null) counts = ev.$2!;
-      yield build(lists, counts);
-    }
-  }
+  late final Stream<List<CustomList>> _lists = _store.watchLists();
+  late final Stream<Map<String, int>> _counts = _store.watchCounts();
 
   Future<void> _create() async {
     final name = await askListName(context, title: 'Nova lista', action: 'Criar');
@@ -258,101 +249,76 @@ class _ListsSectionState extends State<_ListsSection> {
   @override
   Widget build(BuildContext context) {
     final text = Theme.of(context).textTheme;
-    return StreamBuilder<List<CustomListView>>(
-      stream: _stream,
-      builder: (context, snap) {
-        final lists = snap.data ?? const <CustomListView>[];
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+    return StreamBuilder<List<CustomList>>(
+      stream: _lists,
+      builder: (context, listsSnap) => StreamBuilder<Map<String, int>>(
+        stream: _counts,
+        builder: (context, countsSnap) {
+          final lists = listsSnap.data ?? const <CustomList>[];
+          final counts = countsSnap.data ?? const <String, int>{};
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(Space.gutter, Space.xxl, Space.s, 0),
+                child: Row(
+                  children: [
+                    Expanded(child: Text('Minhas listas', style: text.titleLarge)),
+                    TextButton.icon(onPressed: _create, icon: const Icon(Icons.add_rounded, size: 20), label: const Text('Nova lista')),
+                  ],
+                ),
+              ),
+              if (listsSnap.hasData && lists.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: Space.gutter),
+                  child: Text('Monte listas livres: time dos sonhos, trocas pendentes, o que caçar.', style: text.bodyMedium),
+                ),
+              for (var i = 0; i < lists.length; i++) ...[
+                if (i > 0) const Perforation(indent: Space.gutter + 40 + Space.m),
+                _ListRow(list: lists[i], count: counts[lists[i].id] ?? 0),
+              ],
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _ListRow extends StatelessWidget {
+  const _ListRow({required this.list, required this.count});
+  final CustomList list;
+  final int count;
+
+  @override
+  Widget build(BuildContext context) {
+    final text = Theme.of(context).textTheme;
+    return InkWell(
+      onTap: () => openCustomList(context, list.id),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(Space.gutter, Space.s, Space.gutter - Space.xs, Space.s),
+        child: Row(
           children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(Space.gutter, Space.xxl, Space.s, 0),
-              child: Row(
+            Container(
+              width: 40,
+              height: 40,
+              decoration: const BoxDecoration(color: Ramp.n1, shape: BoxShape.circle),
+              child: const Icon(Icons.format_list_bulleted_rounded, size: 20, color: Ramp.n6),
+            ),
+            const SizedBox(width: Space.m),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(child: Text('Minhas listas', style: text.titleLarge)),
-                  TextButton.icon(
-                    onPressed: _create,
-                    icon: const Icon(Icons.add_rounded, size: 20),
-                    label: const Text('Nova lista'),
-                  ),
+                  Text(list.name, style: text.titleMedium, maxLines: 1, overflow: TextOverflow.ellipsis),
+                  Text('$count Pokémon', style: text.bodySmall),
                 ],
               ),
             ),
-            if (snap.hasData && lists.isEmpty)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(Space.gutter, 0, Space.gutter, 0),
-                child: Text('Monte listas livres: time dos sonhos, trocas pendentes, o que caçar.', style: text.bodyMedium),
-              ),
-            for (var i = 0; i < lists.length; i++) ...[
-              if (i > 0) const Perforation(indent: Space.gutter + 40 + Space.m),
-              InkWell(
-                onTap: () => openCustomList(context, lists[i].id),
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(Space.gutter, Space.s, Space.gutter - Space.xs, Space.s),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 40,
-                        height: 40,
-                        decoration: const BoxDecoration(color: Ramp.n1, shape: BoxShape.circle),
-                        child: const Icon(Icons.format_list_bulleted_rounded, size: 20, color: Ramp.n6),
-                      ),
-                      const SizedBox(width: Space.m),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(lists[i].name, style: text.titleMedium, maxLines: 1, overflow: TextOverflow.ellipsis),
-                            Text(
-                              lists[i].count == 1 ? '1 Pokémon' : '${lists[i].count} Pokémon',
-                              style: text.bodySmall,
-                            ),
-                          ],
-                        ),
-                      ),
-                      const Icon(Icons.chevron_right_rounded, color: Ramp.n5),
-                    ],
-                  ),
-                ),
-              ),
-            ],
+            const Icon(Icons.chevron_right_rounded, color: Ramp.n5),
           ],
-        );
-      },
+        ),
+      ),
     );
   }
 }
-
-class CustomListView {
-  const CustomListView({required this.id, required this.name, required this.count});
-  final String id;
-  final String name;
-  final int count;
-}
-
-/// Junta dois streams num só, marcando de qual veio cada evento.
-class StreamGroup2<A, B> {
-  StreamGroup2(this.a, this.b);
-  final Stream<A> a;
-  final Stream<B> b;
-
-  Stream<(A?, B?)> get stream {
-    late final StreamController<(A?, B?)> c;
-    StreamSubscription<A>? sa;
-    StreamSubscription<B>? sb;
-    c = StreamController<(A?, B?)>(
-      onListen: () {
-        sa = a.listen((v) => c.add((v, null)), onError: c.addError);
-        sb = b.listen((v) => c.add((null, v)), onError: c.addError);
-      },
-      onCancel: () async {
-        await sa?.cancel();
-        await sb?.cancel();
-      },
-    );
-    return c.stream;
-  }
-}
-
-/// Usado pelo detalhe também, se quiser: entrada simples da lista de espécies de um Pokémon.
-typedef EntryTap = void Function(DexEntry entry);

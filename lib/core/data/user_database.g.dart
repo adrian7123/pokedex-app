@@ -710,6 +710,26 @@ class $SpecimensTable extends Specimens
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _statsMeta = const VerificationMeta('stats');
+  @override
+  late final GeneratedColumn<String> stats = GeneratedColumn<String>(
+    'stats',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _teraTypeMeta = const VerificationMeta(
+    'teraType',
+  );
+  @override
+  late final GeneratedColumn<String> teraType = GeneratedColumn<String>(
+    'tera_type',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _notesMeta = const VerificationMeta('notes');
   @override
   late final GeneratedColumn<String> notes = GeneratedColumn<String>(
@@ -774,6 +794,8 @@ class $SpecimensTable extends Specimens
     ivs,
     evs,
     moves,
+    stats,
+    teraType,
     notes,
     teamSlot,
     isAlive,
@@ -902,6 +924,18 @@ class $SpecimensTable extends Specimens
         moves.isAcceptableOrUnknown(data['moves']!, _movesMeta),
       );
     }
+    if (data.containsKey('stats')) {
+      context.handle(
+        _statsMeta,
+        stats.isAcceptableOrUnknown(data['stats']!, _statsMeta),
+      );
+    }
+    if (data.containsKey('tera_type')) {
+      context.handle(
+        _teraTypeMeta,
+        teraType.isAcceptableOrUnknown(data['tera_type']!, _teraTypeMeta),
+      );
+    }
     if (data.containsKey('notes')) {
       context.handle(
         _notesMeta,
@@ -1001,6 +1035,14 @@ class $SpecimensTable extends Specimens
         DriftSqlType.string,
         data['${effectivePrefix}moves'],
       ),
+      stats: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}stats'],
+      ),
+      teraType: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}tera_type'],
+      ),
       notes: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}notes'],
@@ -1049,6 +1091,12 @@ class Specimen extends DataClass implements Insertable<Specimen> {
 
   /// Até 4 move ids separados por vírgula.
   final String? moves;
+
+  /// Stats vistos no jogo "hp,atk,def,spa,spd,spe" (PS máximo), para estimar IVs.
+  final String? stats;
+
+  /// Tipo Tera (Scarlet/Violet), identifier do tipo.
+  final String? teraType;
   final String? notes;
 
   /// Posição no time (1–6) da aventura; null fora do time.
@@ -1074,6 +1122,8 @@ class Specimen extends DataClass implements Insertable<Specimen> {
     this.ivs,
     this.evs,
     this.moves,
+    this.stats,
+    this.teraType,
     this.notes,
     this.teamSlot,
     required this.isAlive,
@@ -1121,6 +1171,12 @@ class Specimen extends DataClass implements Insertable<Specimen> {
     }
     if (!nullToAbsent || moves != null) {
       map['moves'] = Variable<String>(moves);
+    }
+    if (!nullToAbsent || stats != null) {
+      map['stats'] = Variable<String>(stats);
+    }
+    if (!nullToAbsent || teraType != null) {
+      map['tera_type'] = Variable<String>(teraType);
     }
     if (!nullToAbsent || notes != null) {
       map['notes'] = Variable<String>(notes);
@@ -1171,6 +1227,12 @@ class Specimen extends DataClass implements Insertable<Specimen> {
       moves: moves == null && nullToAbsent
           ? const Value.absent()
           : Value(moves),
+      stats: stats == null && nullToAbsent
+          ? const Value.absent()
+          : Value(stats),
+      teraType: teraType == null && nullToAbsent
+          ? const Value.absent()
+          : Value(teraType),
       notes: notes == null && nullToAbsent
           ? const Value.absent()
           : Value(notes),
@@ -1204,6 +1266,8 @@ class Specimen extends DataClass implements Insertable<Specimen> {
       ivs: serializer.fromJson<String?>(json['ivs']),
       evs: serializer.fromJson<String?>(json['evs']),
       moves: serializer.fromJson<String?>(json['moves']),
+      stats: serializer.fromJson<String?>(json['stats']),
+      teraType: serializer.fromJson<String?>(json['teraType']),
       notes: serializer.fromJson<String?>(json['notes']),
       teamSlot: serializer.fromJson<int?>(json['teamSlot']),
       isAlive: serializer.fromJson<bool>(json['isAlive']),
@@ -1230,6 +1294,8 @@ class Specimen extends DataClass implements Insertable<Specimen> {
       'ivs': serializer.toJson<String?>(ivs),
       'evs': serializer.toJson<String?>(evs),
       'moves': serializer.toJson<String?>(moves),
+      'stats': serializer.toJson<String?>(stats),
+      'teraType': serializer.toJson<String?>(teraType),
       'notes': serializer.toJson<String?>(notes),
       'teamSlot': serializer.toJson<int?>(teamSlot),
       'isAlive': serializer.toJson<bool>(isAlive),
@@ -1254,6 +1320,8 @@ class Specimen extends DataClass implements Insertable<Specimen> {
     Value<String?> ivs = const Value.absent(),
     Value<String?> evs = const Value.absent(),
     Value<String?> moves = const Value.absent(),
+    Value<String?> stats = const Value.absent(),
+    Value<String?> teraType = const Value.absent(),
     Value<String?> notes = const Value.absent(),
     Value<int?> teamSlot = const Value.absent(),
     bool? isAlive,
@@ -1275,6 +1343,8 @@ class Specimen extends DataClass implements Insertable<Specimen> {
     ivs: ivs.present ? ivs.value : this.ivs,
     evs: evs.present ? evs.value : this.evs,
     moves: moves.present ? moves.value : this.moves,
+    stats: stats.present ? stats.value : this.stats,
+    teraType: teraType.present ? teraType.value : this.teraType,
     notes: notes.present ? notes.value : this.notes,
     teamSlot: teamSlot.present ? teamSlot.value : this.teamSlot,
     isAlive: isAlive ?? this.isAlive,
@@ -1306,6 +1376,8 @@ class Specimen extends DataClass implements Insertable<Specimen> {
       ivs: data.ivs.present ? data.ivs.value : this.ivs,
       evs: data.evs.present ? data.evs.value : this.evs,
       moves: data.moves.present ? data.moves.value : this.moves,
+      stats: data.stats.present ? data.stats.value : this.stats,
+      teraType: data.teraType.present ? data.teraType.value : this.teraType,
       notes: data.notes.present ? data.notes.value : this.notes,
       teamSlot: data.teamSlot.present ? data.teamSlot.value : this.teamSlot,
       isAlive: data.isAlive.present ? data.isAlive.value : this.isAlive,
@@ -1332,6 +1404,8 @@ class Specimen extends DataClass implements Insertable<Specimen> {
           ..write('ivs: $ivs, ')
           ..write('evs: $evs, ')
           ..write('moves: $moves, ')
+          ..write('stats: $stats, ')
+          ..write('teraType: $teraType, ')
           ..write('notes: $notes, ')
           ..write('teamSlot: $teamSlot, ')
           ..write('isAlive: $isAlive, ')
@@ -1341,7 +1415,7 @@ class Specimen extends DataClass implements Insertable<Specimen> {
   }
 
   @override
-  int get hashCode => Object.hash(
+  int get hashCode => Object.hashAll([
     id,
     adventureId,
     speciesId,
@@ -1358,11 +1432,13 @@ class Specimen extends DataClass implements Insertable<Specimen> {
     ivs,
     evs,
     moves,
+    stats,
+    teraType,
     notes,
     teamSlot,
     isAlive,
     caughtAt,
-  );
+  ]);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -1383,6 +1459,8 @@ class Specimen extends DataClass implements Insertable<Specimen> {
           other.ivs == this.ivs &&
           other.evs == this.evs &&
           other.moves == this.moves &&
+          other.stats == this.stats &&
+          other.teraType == this.teraType &&
           other.notes == this.notes &&
           other.teamSlot == this.teamSlot &&
           other.isAlive == this.isAlive &&
@@ -1406,6 +1484,8 @@ class SpecimensCompanion extends UpdateCompanion<Specimen> {
   final Value<String?> ivs;
   final Value<String?> evs;
   final Value<String?> moves;
+  final Value<String?> stats;
+  final Value<String?> teraType;
   final Value<String?> notes;
   final Value<int?> teamSlot;
   final Value<bool> isAlive;
@@ -1428,6 +1508,8 @@ class SpecimensCompanion extends UpdateCompanion<Specimen> {
     this.ivs = const Value.absent(),
     this.evs = const Value.absent(),
     this.moves = const Value.absent(),
+    this.stats = const Value.absent(),
+    this.teraType = const Value.absent(),
     this.notes = const Value.absent(),
     this.teamSlot = const Value.absent(),
     this.isAlive = const Value.absent(),
@@ -1451,6 +1533,8 @@ class SpecimensCompanion extends UpdateCompanion<Specimen> {
     this.ivs = const Value.absent(),
     this.evs = const Value.absent(),
     this.moves = const Value.absent(),
+    this.stats = const Value.absent(),
+    this.teraType = const Value.absent(),
     this.notes = const Value.absent(),
     this.teamSlot = const Value.absent(),
     this.isAlive = const Value.absent(),
@@ -1477,6 +1561,8 @@ class SpecimensCompanion extends UpdateCompanion<Specimen> {
     Expression<String>? ivs,
     Expression<String>? evs,
     Expression<String>? moves,
+    Expression<String>? stats,
+    Expression<String>? teraType,
     Expression<String>? notes,
     Expression<int>? teamSlot,
     Expression<bool>? isAlive,
@@ -1500,6 +1586,8 @@ class SpecimensCompanion extends UpdateCompanion<Specimen> {
       if (ivs != null) 'ivs': ivs,
       if (evs != null) 'evs': evs,
       if (moves != null) 'moves': moves,
+      if (stats != null) 'stats': stats,
+      if (teraType != null) 'tera_type': teraType,
       if (notes != null) 'notes': notes,
       if (teamSlot != null) 'team_slot': teamSlot,
       if (isAlive != null) 'is_alive': isAlive,
@@ -1525,6 +1613,8 @@ class SpecimensCompanion extends UpdateCompanion<Specimen> {
     Value<String?>? ivs,
     Value<String?>? evs,
     Value<String?>? moves,
+    Value<String?>? stats,
+    Value<String?>? teraType,
     Value<String?>? notes,
     Value<int?>? teamSlot,
     Value<bool>? isAlive,
@@ -1548,6 +1638,8 @@ class SpecimensCompanion extends UpdateCompanion<Specimen> {
       ivs: ivs ?? this.ivs,
       evs: evs ?? this.evs,
       moves: moves ?? this.moves,
+      stats: stats ?? this.stats,
+      teraType: teraType ?? this.teraType,
       notes: notes ?? this.notes,
       teamSlot: teamSlot ?? this.teamSlot,
       isAlive: isAlive ?? this.isAlive,
@@ -1607,6 +1699,12 @@ class SpecimensCompanion extends UpdateCompanion<Specimen> {
     if (moves.present) {
       map['moves'] = Variable<String>(moves.value);
     }
+    if (stats.present) {
+      map['stats'] = Variable<String>(stats.value);
+    }
+    if (teraType.present) {
+      map['tera_type'] = Variable<String>(teraType.value);
+    }
     if (notes.present) {
       map['notes'] = Variable<String>(notes.value);
     }
@@ -1644,6 +1742,8 @@ class SpecimensCompanion extends UpdateCompanion<Specimen> {
           ..write('ivs: $ivs, ')
           ..write('evs: $evs, ')
           ..write('moves: $moves, ')
+          ..write('stats: $stats, ')
+          ..write('teraType: $teraType, ')
           ..write('notes: $notes, ')
           ..write('teamSlot: $teamSlot, ')
           ..write('isAlive: $isAlive, ')
@@ -1655,7 +1755,7 @@ class SpecimensCompanion extends UpdateCompanion<Specimen> {
 }
 
 class $SpeciesMarksTable extends SpeciesMarks
-    with TableInfo<$SpeciesMarksTable, SpeciesMark> {
+    with TableInfo<$SpeciesMarksTable, SpeciesMarkRow> {
   @override
   final GeneratedDatabase attachedDatabase;
   final String? _alias;
@@ -1705,7 +1805,7 @@ class $SpeciesMarksTable extends SpeciesMarks
   static const String $name = 'species_marks';
   @override
   VerificationContext validateIntegrity(
-    Insertable<SpeciesMark> instance, {
+    Insertable<SpeciesMarkRow> instance, {
     bool isInserting = false,
   }) {
     final context = VerificationContext();
@@ -1734,9 +1834,9 @@ class $SpeciesMarksTable extends SpeciesMarks
   @override
   Set<GeneratedColumn> get $primaryKey => {speciesId};
   @override
-  SpeciesMark map(Map<String, dynamic> data, {String? tablePrefix}) {
+  SpeciesMarkRow map(Map<String, dynamic> data, {String? tablePrefix}) {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
-    return SpeciesMark(
+    return SpeciesMarkRow(
       speciesId: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}species_id'],
@@ -1758,13 +1858,13 @@ class $SpeciesMarksTable extends SpeciesMarks
   }
 }
 
-class SpeciesMark extends DataClass implements Insertable<SpeciesMark> {
+class SpeciesMarkRow extends DataClass implements Insertable<SpeciesMarkRow> {
   final int speciesId;
   final bool favorite;
 
   /// Bits: 1 estrela, 2 círculo, 4 triângulo, 8 quadrado, 16 coração, 32 losango.
   final int marks;
-  const SpeciesMark({
+  const SpeciesMarkRow({
     required this.speciesId,
     required this.favorite,
     required this.marks,
@@ -1786,12 +1886,12 @@ class SpeciesMark extends DataClass implements Insertable<SpeciesMark> {
     );
   }
 
-  factory SpeciesMark.fromJson(
+  factory SpeciesMarkRow.fromJson(
     Map<String, dynamic> json, {
     ValueSerializer? serializer,
   }) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
-    return SpeciesMark(
+    return SpeciesMarkRow(
       speciesId: serializer.fromJson<int>(json['speciesId']),
       favorite: serializer.fromJson<bool>(json['favorite']),
       marks: serializer.fromJson<int>(json['marks']),
@@ -1807,14 +1907,14 @@ class SpeciesMark extends DataClass implements Insertable<SpeciesMark> {
     };
   }
 
-  SpeciesMark copyWith({int? speciesId, bool? favorite, int? marks}) =>
-      SpeciesMark(
+  SpeciesMarkRow copyWith({int? speciesId, bool? favorite, int? marks}) =>
+      SpeciesMarkRow(
         speciesId: speciesId ?? this.speciesId,
         favorite: favorite ?? this.favorite,
         marks: marks ?? this.marks,
       );
-  SpeciesMark copyWithCompanion(SpeciesMarksCompanion data) {
-    return SpeciesMark(
+  SpeciesMarkRow copyWithCompanion(SpeciesMarksCompanion data) {
+    return SpeciesMarkRow(
       speciesId: data.speciesId.present ? data.speciesId.value : this.speciesId,
       favorite: data.favorite.present ? data.favorite.value : this.favorite,
       marks: data.marks.present ? data.marks.value : this.marks,
@@ -1823,7 +1923,7 @@ class SpeciesMark extends DataClass implements Insertable<SpeciesMark> {
 
   @override
   String toString() {
-    return (StringBuffer('SpeciesMark(')
+    return (StringBuffer('SpeciesMarkRow(')
           ..write('speciesId: $speciesId, ')
           ..write('favorite: $favorite, ')
           ..write('marks: $marks')
@@ -1836,13 +1936,13 @@ class SpeciesMark extends DataClass implements Insertable<SpeciesMark> {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      (other is SpeciesMark &&
+      (other is SpeciesMarkRow &&
           other.speciesId == this.speciesId &&
           other.favorite == this.favorite &&
           other.marks == this.marks);
 }
 
-class SpeciesMarksCompanion extends UpdateCompanion<SpeciesMark> {
+class SpeciesMarksCompanion extends UpdateCompanion<SpeciesMarkRow> {
   final Value<int> speciesId;
   final Value<bool> favorite;
   final Value<int> marks;
@@ -1856,7 +1956,7 @@ class SpeciesMarksCompanion extends UpdateCompanion<SpeciesMark> {
     this.favorite = const Value.absent(),
     this.marks = const Value.absent(),
   });
-  static Insertable<SpeciesMark> custom({
+  static Insertable<SpeciesMarkRow> custom({
     Expression<int>? speciesId,
     Expression<bool>? favorite,
     Expression<int>? marks,
@@ -3712,6 +3812,8 @@ typedef $$SpecimensTableCreateCompanionBuilder = SpecimensCompanion Function({
   Value<String?> ivs,
   Value<String?> evs,
   Value<String?> moves,
+  Value<String?> stats,
+  Value<String?> teraType,
   Value<String?> notes,
   Value<int?> teamSlot,
   Value<bool> isAlive,
@@ -3735,6 +3837,8 @@ typedef $$SpecimensTableUpdateCompanionBuilder = SpecimensCompanion Function({
   Value<String?> ivs,
   Value<String?> evs,
   Value<String?> moves,
+  Value<String?> stats,
+  Value<String?> teraType,
   Value<String?> notes,
   Value<int?> teamSlot,
   Value<bool> isAlive,
@@ -3845,6 +3949,16 @@ class $$SpecimensTableFilterComposer
 
   ColumnFilters<String> get moves => $composableBuilder(
     column: $table.moves,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get stats => $composableBuilder(
+    column: $table.stats,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get teraType => $composableBuilder(
+    column: $table.teraType,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -3976,6 +4090,16 @@ class $$SpecimensTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get stats => $composableBuilder(
+    column: $table.stats,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get teraType => $composableBuilder(
+    column: $table.teraType,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get notes => $composableBuilder(
     column: $table.notes,
     builder: (column) => ColumnOrderings(column),
@@ -4080,6 +4204,12 @@ class $$SpecimensTableAnnotationComposer
   GeneratedColumn<String> get moves =>
       $composableBuilder(column: $table.moves, builder: (column) => column);
 
+  GeneratedColumn<String> get stats =>
+      $composableBuilder(column: $table.stats, builder: (column) => column);
+
+  GeneratedColumn<String> get teraType =>
+      $composableBuilder(column: $table.teraType, builder: (column) => column);
+
   GeneratedColumn<String> get notes =>
       $composableBuilder(column: $table.notes, builder: (column) => column);
 
@@ -4160,6 +4290,8 @@ class $$SpecimensTableTableManager
                 Value<String?> ivs = const Value.absent(),
                 Value<String?> evs = const Value.absent(),
                 Value<String?> moves = const Value.absent(),
+                Value<String?> stats = const Value.absent(),
+                Value<String?> teraType = const Value.absent(),
                 Value<String?> notes = const Value.absent(),
                 Value<int?> teamSlot = const Value.absent(),
                 Value<bool> isAlive = const Value.absent(),
@@ -4182,6 +4314,8 @@ class $$SpecimensTableTableManager
                 ivs: ivs,
                 evs: evs,
                 moves: moves,
+                stats: stats,
+                teraType: teraType,
                 notes: notes,
                 teamSlot: teamSlot,
                 isAlive: isAlive,
@@ -4206,6 +4340,8 @@ class $$SpecimensTableTableManager
                 Value<String?> ivs = const Value.absent(),
                 Value<String?> evs = const Value.absent(),
                 Value<String?> moves = const Value.absent(),
+                Value<String?> stats = const Value.absent(),
+                Value<String?> teraType = const Value.absent(),
                 Value<String?> notes = const Value.absent(),
                 Value<int?> teamSlot = const Value.absent(),
                 Value<bool> isAlive = const Value.absent(),
@@ -4228,6 +4364,8 @@ class $$SpecimensTableTableManager
                 ivs: ivs,
                 evs: evs,
                 moves: moves,
+                stats: stats,
+                teraType: teraType,
                 notes: notes,
                 teamSlot: teamSlot,
                 isAlive: isAlive,
@@ -4386,17 +4524,17 @@ class $$SpeciesMarksTableTableManager
         RootTableManager<
           _$UserDatabase,
           $SpeciesMarksTable,
-          SpeciesMark,
+          SpeciesMarkRow,
           $$SpeciesMarksTableFilterComposer,
           $$SpeciesMarksTableOrderingComposer,
           $$SpeciesMarksTableAnnotationComposer,
           $$SpeciesMarksTableCreateCompanionBuilder,
           $$SpeciesMarksTableUpdateCompanionBuilder,
           (
-            SpeciesMark,
-            BaseReferences<_$UserDatabase, $SpeciesMarksTable, SpeciesMark>,
+            SpeciesMarkRow,
+            BaseReferences<_$UserDatabase, $SpeciesMarksTable, SpeciesMarkRow>,
           ),
-          SpeciesMark,
+          SpeciesMarkRow,
           PrefetchHooks Function()
         > {
   $$SpeciesMarksTableTableManager(_$UserDatabase db, $SpeciesMarksTable table)
@@ -4433,11 +4571,11 @@ class $$SpeciesMarksTableTableManager
           withReferenceMapper: (p0) => p0
               .map(
                 (e) => (
-                  e.readTable<$SpeciesMarksTable, SpeciesMark>(table),
+                  e.readTable<$SpeciesMarksTable, SpeciesMarkRow>(table),
                   BaseReferences<
                     _$UserDatabase,
                     $SpeciesMarksTable,
-                    SpeciesMark
+                    SpeciesMarkRow
                   >(db, table, e),
                 ),
               )
@@ -4451,17 +4589,17 @@ typedef $$SpeciesMarksTableProcessedTableManager =
     ProcessedTableManager<
       _$UserDatabase,
       $SpeciesMarksTable,
-      SpeciesMark,
+      SpeciesMarkRow,
       $$SpeciesMarksTableFilterComposer,
       $$SpeciesMarksTableOrderingComposer,
       $$SpeciesMarksTableAnnotationComposer,
       $$SpeciesMarksTableCreateCompanionBuilder,
       $$SpeciesMarksTableUpdateCompanionBuilder,
       (
-        SpeciesMark,
-        BaseReferences<_$UserDatabase, $SpeciesMarksTable, SpeciesMark>,
+        SpeciesMarkRow,
+        BaseReferences<_$UserDatabase, $SpeciesMarksTable, SpeciesMarkRow>,
       ),
-      SpeciesMark,
+      SpeciesMarkRow,
       PrefetchHooks Function()
     >;
 typedef $$CustomListsTableCreateCompanionBuilder =

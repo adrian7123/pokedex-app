@@ -47,10 +47,6 @@ class TypeDiscWrap extends StatelessWidget {
         ),
       );
     }
-    return Wrap(
-      spacing: Space.xs,
-      runSpacing: Space.xs,
-      children: [for (final t in types) TypeDisc(t)],
-    );
+    return Wrap(spacing: Space.xs, runSpacing: Space.xs, children: [for (final t in types) TypeDisc(t)]);
   }
 }

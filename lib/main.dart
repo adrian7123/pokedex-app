@@ -66,14 +66,16 @@ class _PokedexAppState extends State<PokedexApp> {
       localizationsDelegates: GlobalMaterialLocalizations.delegates,
       themeMode: ThemeMode.light,
       theme: _theme,
-      home: FutureBuilder<AppState>(
+      home: const Shell(),
+      // O AppScope envolve o Navigator inteiro: rotas empilhadas (detalhe) e sheets também enxergam o estado.
+      builder: (context, navigator) => FutureBuilder<AppState>(
         future: _boot$,
         builder: (context, snap) {
           if (snap.hasError) return _BootError(error: snap.error!);
           final state = snap.data;
           return AnimatedSwitcher(
             duration: Motion.medium,
-            child: state == null ? const _Splash() : AppScope(state: state, child: const Shell()),
+            child: state == null ? const _Splash() : AppScope(state: state, child: navigator!),
           );
         },
       ),

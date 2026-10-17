@@ -28,6 +28,10 @@
 	<string>????</string>
 	<key>CFBundleVersion</key>
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Para fotografar a tela do jogo e carimbar o Pokémon pelo resumo.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Para escolher fotos do resumo do Pokémon e carimbar pelo que aparece nelas.</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>UIApplicationSceneManifest</key>

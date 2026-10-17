@@ -1461,6 +1461,22 @@ def update_sprite_flags(db: sqlite3.Connection):
     return miss, miss_shiny, miss_items
 
 
+DART_VERSION_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                                 "lib", "core", "data", "dex_asset.dart")
+
+
+def write_dart_version(db_path):
+    """Grava em lib/core/data/dex_asset.dart o built_at do banco: o app recopia o asset quando muda."""
+    db = sqlite3.connect(db_path)
+    built_at = db.execute("SELECT value FROM meta WHERE key='built_at'").fetchone()[0]
+    db.close()
+    with open(DART_VERSION_PATH, "w", encoding="utf-8") as f:
+        f.write("// Gerado por tool/build_db.py — não editar à mão.\n"
+                "// Muda a cada build do banco; o app recopia o asset quando difere da cópia local.\n"
+                f"const kDexAssetBuiltAt = '{built_at}';\n")
+    print(f"versão do asset: {built_at} -> {DART_VERSION_PATH}")
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--csv-dir")
@@ -1476,11 +1492,14 @@ def main():
         if args.sprites_sha:
             db.execute("INSERT OR REPLACE INTO meta (key, value) VALUES ('sprites_sha', ?)",
                        (args.sprites_sha,))
+        db.execute("INSERT OR REPLACE INTO meta (key, value) VALUES ('built_at', ?)",
+                   (_dt.datetime.now(_dt.timezone.utc).replace(microsecond=0).isoformat(),))
         db.commit()
         db.execute("VACUUM")
         db.close()
         print(f"sprites: {len(miss)} pokémon sem sprite, {len(miss_s)} sem shiny, "
               f"{len(miss_i)} itens sem sprite")
+        write_dart_version(args.out)
         return
 
     csv_dir, sha, date = resolve_csv_dir(args)
@@ -1520,6 +1539,7 @@ def main():
         print(f"{t:28s} {db.execute(f'SELECT COUNT(*) FROM {t}').fetchone()[0]:>8d}")
     db.close()
     print(f"tamanho: {os.path.getsize(args.out) / 1024 / 1024:.2f} MiB -> {args.out}")
+    write_dart_version(args.out)
 
 
 if __name__ == "__main__":

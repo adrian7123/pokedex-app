@@ -23,6 +23,8 @@ class DexDatabase extends GeneratedDatabase {
   Iterable<TableInfo<Table, Object?>> get allTables => const [];
 
   @override
+  // Sem PRAGMA query_only: o Drift grava o user_version depois do beforeOpen ao abrir.
+  // A cópia local é descartável (recopiada do asset) e só recebe SELECTs via [rows].
   MigrationStrategy get migration => MigrationStrategy(onCreate: (_) async {}, onUpgrade: (_, _, _) async {});
 
   static Future<DexDatabase> open() async {
@@ -39,10 +41,7 @@ class DexDatabase extends GeneratedDatabase {
     }
     final executor = NativeDatabase.createInBackground(
       file,
-      setup: (db) {
-        db.execute('PRAGMA query_only = 1');
-        db.execute('PRAGMA temp_store = MEMORY');
-      },
+      setup: (db) => db.execute('PRAGMA temp_store = MEMORY'),
     );
     return DexDatabase._(executor);
   }

@@ -145,7 +145,6 @@ class _Data extends StatelessWidget {
   final DexEntry entry;
   final Future<SpeciesDetail> detail;
 
-  static const _growthByName = {'erratic': 'Errático', 'fluctuating': 'Flutuante'};
 
   @override
   Widget build(BuildContext context) {
@@ -185,7 +184,7 @@ class _Data extends StatelessWidget {
                         plain(
                           growth == null
                               ? '—'
-                              : Labels.growthRate[growth.replaceAll(' ', '-')] ?? _growthByName[growth] ?? growth,
+                              : Labels.growthRate[growth] ?? growth,
                         ),
                       ),
                       cell('Experiência base', plain(d.baseExperience?.toString() ?? '—')),

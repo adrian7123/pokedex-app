@@ -36,9 +36,9 @@ class SectionTitle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-        padding: EdgeInsets.only(top: first ? Space.xl : Space.xxxl, bottom: Space.m),
-        child: Text(text, style: Theme.of(context).textTheme.titleLarge),
-      );
+    padding: EdgeInsets.only(top: first ? Space.xl : Space.xxxl, bottom: Space.m),
+    child: Text(text, style: Theme.of(context).textTheme.titleLarge),
+  );
 }
 
 /// Linha discreta de aviso (fonte dos dados, ausência de dados).
@@ -53,7 +53,10 @@ class InfoNote extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Padding(padding: const EdgeInsets.only(top: 1), child: Icon(icon, size: 16, color: Ramp.n5)),
+        Padding(
+          padding: const EdgeInsets.only(top: 1),
+          child: Icon(icon, size: 16, color: Ramp.n5),
+        ),
         const SizedBox(width: Space.s),
         Expanded(child: Text(text, style: style)),
       ],
@@ -78,10 +81,7 @@ class EmptyNote extends StatelessWidget {
           Icon(icon, size: 36, color: Ramp.n4),
           const SizedBox(height: Space.m),
           Text(title, style: text.titleMedium, textAlign: TextAlign.center),
-          if (hint != null) ...[
-            const SizedBox(height: Space.xs),
-            Text(hint!, style: text.bodyMedium, textAlign: TextAlign.center),
-          ],
+          if (hint != null) ...[const SizedBox(height: Space.xs), Text(hint!, style: text.bodyMedium, textAlign: TextAlign.center)],
         ],
       ),
     );
@@ -94,6 +94,7 @@ void showUndoSnack(BuildContext context, String message, [Future<void> Function(
   messenger.hideCurrentSnackBar();
   messenger.showSnackBar(
     SnackBar(
+      persist: false,
       content: Text(message),
       duration: const Duration(seconds: 4),
       action: undo == null ? null : SnackBarAction(label: 'Desfazer', onPressed: () => undo()),
