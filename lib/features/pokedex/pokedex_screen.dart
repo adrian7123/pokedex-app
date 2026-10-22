@@ -327,9 +327,40 @@ class _SearchHeader extends SliverPersistentHeaderDelegate {
   bool shouldRebuild(_SearchHeader old) => old.c != c;
 }
 
-class _SearchField extends StatelessWidget {
+class _SearchField extends StatefulWidget {
   const _SearchField({required this.c});
   final PokedexController c;
+
+  @override
+  State<_SearchField> createState() => _SearchFieldState();
+}
+
+class _SearchFieldState extends State<_SearchField> {
+  final _focus = FocusNode();
+
+  PokedexController get c => widget.c;
+
+  @override
+  void initState() {
+    super.initState();
+    _focus.addListener(_onFocus);
+  }
+
+  @override
+  void dispose() {
+    _focus.dispose();
+    super.dispose();
+  }
+
+  /// Ao entrar no campo, a busca anterior fica toda selecionada: digitar já substitui.
+  /// Pós-frame, para vencer o cursor que o próprio toque posiciona.
+  void _onFocus() {
+    if (!_focus.hasFocus || c.search.text.isEmpty) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_focus.hasFocus) return;
+      c.search.selection = TextSelection(baseOffset: 0, extentOffset: c.search.text.length);
+    });
+  }
 
   @override
   Widget build(BuildContext context) => SizedBox(
@@ -338,6 +369,7 @@ class _SearchField extends StatelessWidget {
           valueListenable: c.search,
           builder: (context, value, _) => TextField(
             controller: c.search,
+            focusNode: _focus,
             textInputAction: TextInputAction.search,
             autocorrect: false,
             enableSuggestions: false,

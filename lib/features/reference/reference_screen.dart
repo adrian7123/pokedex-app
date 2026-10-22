@@ -6,9 +6,17 @@ import 'advantages_view.dart';
 import 'calculator_view.dart';
 import 'matrix_view.dart';
 
-enum _Mode { advantages, calculator, matrix }
+enum _Mode {
+  calculator('Fraquezas', 'Vai enfrentar ou usar um Pokémon? Veja quais tipos de golpe causam mais dano nele e quais quase não fazem efeito.'),
+  advantages('Por tipo', 'Para cada tipo: contra quem os golpes dele são fortes e de quem ele leva dano dobrado. Toque num tipo para ver o resto.'),
+  matrix('Tabela', 'Todos os tipos de uma vez. Cada linha é o tipo do golpe; cada coluna, o tipo de quem leva o golpe.');
 
-/// Consulta: tabela de tipos em três leituras (vantagens, calculadora, matriz).
+  const _Mode(this.label, this.intro);
+  final String label;
+  final String intro;
+}
+
+/// Tipos: quem bate forte em quem, em três leituras (fraquezas de um Pokémon, por tipo, tabela completa).
 class ReferenceScreen extends StatefulWidget {
   const ReferenceScreen({super.key});
 
@@ -17,7 +25,7 @@ class ReferenceScreen extends StatefulWidget {
 }
 
 class _ReferenceScreenState extends State<ReferenceScreen> {
-  _Mode _mode = _Mode.advantages;
+  _Mode _mode = _Mode.calculator;
 
   @override
   void initState() {
@@ -46,7 +54,7 @@ class _ReferenceScreenState extends State<ReferenceScreen> {
           slivers: [
             SliverPadding(
               padding: const EdgeInsets.fromLTRB(Space.gutter, Space.xxl, Space.gutter, Space.l),
-              sliver: SliverToBoxAdapter(child: Text('Consulta', style: text.headlineMedium)),
+              sliver: SliverToBoxAdapter(child: Text('Tipos', style: text.headlineMedium)),
             ),
             SliverPadding(
               padding: const EdgeInsets.symmetric(horizontal: Space.gutter),
@@ -55,10 +63,8 @@ class _ReferenceScreenState extends State<ReferenceScreen> {
                   width: double.infinity,
                   child: SegmentedButton<_Mode>(
                     showSelectedIcon: false,
-                    segments: const [
-                      ButtonSegment(value: _Mode.advantages, label: Text('Vantagens')),
-                      ButtonSegment(value: _Mode.calculator, label: Text('Calculadora')),
-                      ButtonSegment(value: _Mode.matrix, label: Text('Matriz')),
+                    segments: [
+                      for (final m in _Mode.values) ButtonSegment(value: m, label: Text(m.label)),
                     ],
                     selected: {_mode},
                     onSelectionChanged: (s) => _select(s.first),
@@ -66,7 +72,10 @@ class _ReferenceScreenState extends State<ReferenceScreen> {
                 ),
               ),
             ),
-            const SliverToBoxAdapter(child: SizedBox(height: Space.xl)),
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(Space.gutter, Space.m, Space.gutter, Space.xl),
+              sliver: SliverToBoxAdapter(child: Text(_mode.intro, style: text.bodyMedium)),
+            ),
             ...switch (_mode) {
               _Mode.advantages => [AdvantagesSliver(types: ids)],
               _Mode.calculator => [SliverToBoxAdapter(child: CalculatorView(types: ids))],

@@ -7,7 +7,7 @@ import '../../core/theme/tokens.dart';
 import '../../core/widgets/sprite.dart';
 import '../../core/widgets/type_badge.dart';
 
-/// Calculadora defensiva: 1 ou 2 tipos → quanto cada tipo atacante causa.
+/// Fraquezas: um Pokémon (ou 1–2 tipos) → quanto dano cada tipo de golpe causa nele.
 class CalculatorView extends StatefulWidget {
   const CalculatorView({super.key, required this.types});
   final List<String> types;
@@ -86,7 +86,7 @@ class _CalculatorViewState extends State<CalculatorView> {
             textInputAction: TextInputAction.search,
             onChanged: (v) => setState(() => _query = v),
             decoration: InputDecoration(
-              hintText: 'Usar os tipos de um Pokémon',
+              hintText: 'Buscar um Pokémon (ex.: Charizard)',
               prefixIcon: const Icon(Icons.search_rounded, color: Ramp.n6),
               suffixIcon: _query.isEmpty
                   ? null
@@ -116,9 +116,9 @@ class _CalculatorViewState extends State<CalculatorView> {
               Expanded(
                 child: Text.rich(
                   TextSpan(
-                    text: 'Tipos defensores',
+                    text: 'Ou escolha o tipo',
                     style: text.titleMedium,
-                    children: [TextSpan(text: '  até 2', style: text.bodySmall)],
+                    children: [TextSpan(text: '  até 2 (ex.: Fogo + Voador)', style: text.bodySmall)],
                   ),
                 ),
               ),
@@ -147,7 +147,7 @@ class _CalculatorViewState extends State<CalculatorView> {
           ),
           const SizedBox(height: Space.xxl),
           if (_defs.isEmpty)
-            Text('Escolha 1 ou 2 tipos para ver o dano que cada tipo de ataque causa.', style: text.bodyMedium)
+            Text('Busque um Pokémon ou escolha o tipo dele para ver quais golpes são perigosos e quais quase não fazem efeito.', style: text.bodyMedium)
           else
             _Result(defs: _defs, types: widget.types, title: _defs.map(nameOf).join(' / ')),
         ],
@@ -251,12 +251,12 @@ class _Result extends StatelessWidget {
   final String title;
 
   static const _groups = [
-    (400, '4×', 'Fraqueza dupla'),
-    (200, '2×', 'Fraqueza'),
+    (400, '4×', 'Muito perigosos: dano quadruplicado'),
+    (200, '2×', 'Perigosos: dano dobrado'),
     (100, '1×', 'Dano normal'),
-    (50, '½×', 'Resistência'),
-    (25, '¼×', 'Resistência dupla'),
-    (0, '0×', 'Imunidade'),
+    (50, '½×', 'Fracos: metade do dano'),
+    (25, '¼×', 'Muito fracos: um quarto do dano'),
+    (0, '0×', 'Não causam dano'),
   ];
 
   @override
@@ -275,7 +275,7 @@ class _Result extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Dano recebido por $title', style: text.titleLarge),
+        Text('Golpes contra $title', style: text.titleLarge),
         const SizedBox(height: Space.m),
         for (var i = 0; i < shown.length; i++) ...[
           if (i > 0) const Perforation(),

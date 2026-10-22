@@ -39,30 +39,37 @@ class _ShellState extends State<Shell> {
   @override
   Widget build(BuildContext context) {
     final reduce = MediaQuery.disableAnimationsOf(context);
-    return Scaffold(
-      body: PageTransitionSwitcher(
-        duration: reduce ? Duration.zero : Motion.medium,
-        reverse: _reverse,
-        transitionBuilder: (child, primary, secondary) => SharedAxisTransition(
-          animation: primary,
-          secondaryAnimation: secondary,
-          transitionType: SharedAxisTransitionType.horizontal,
-          fillColor: Ramp.paper,
-          child: child,
+    // Voltar do sistema fora da Pokédex leva para a Pokédex; só nela o app fecha.
+    return PopScope(
+      canPop: _index == 0,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) _select(0);
+      },
+      child: Scaffold(
+        body: PageTransitionSwitcher(
+          duration: reduce ? Duration.zero : Motion.medium,
+          reverse: _reverse,
+          transitionBuilder: (child, primary, secondary) => SharedAxisTransition(
+            animation: primary,
+            secondaryAnimation: secondary,
+            transitionType: SharedAxisTransitionType.horizontal,
+            fillColor: Ramp.paper,
+            child: child,
+          ),
+          child: KeyedSubtree(key: ValueKey(_index), child: _tabs[_index]),
         ),
-        child: KeyedSubtree(key: ValueKey(_index), child: _tabs[_index]),
-      ),
-      bottomNavigationBar: DecoratedBox(
-        decoration: const BoxDecoration(border: Border(top: BorderSide(color: Ramp.n2))),
-        child: NavigationBar(
-          selectedIndex: _index,
-          onDestinationSelected: _select,
-          destinations: const [
-            NavigationDestination(icon: Icon(Icons.catching_pokemon_outlined), selectedIcon: Icon(Icons.catching_pokemon), label: 'Pokédex'),
-            NavigationDestination(icon: Icon(Icons.route_outlined), selectedIcon: Icon(Icons.route), label: 'Aventuras'),
-            NavigationDestination(icon: Icon(Icons.collections_bookmark_outlined), selectedIcon: Icon(Icons.collections_bookmark), label: 'Coleção'),
-            NavigationDestination(icon: Icon(Icons.auto_stories_outlined), selectedIcon: Icon(Icons.auto_stories), label: 'Consulta'),
-          ],
+        bottomNavigationBar: DecoratedBox(
+          decoration: const BoxDecoration(border: Border(top: BorderSide(color: Ramp.n2))),
+          child: NavigationBar(
+            selectedIndex: _index,
+            onDestinationSelected: _select,
+            destinations: const [
+              NavigationDestination(icon: Icon(Icons.catching_pokemon_outlined), selectedIcon: Icon(Icons.catching_pokemon), label: 'Pokédex'),
+              NavigationDestination(icon: Icon(Icons.route_outlined), selectedIcon: Icon(Icons.route), label: 'Aventuras'),
+              NavigationDestination(icon: Icon(Icons.collections_bookmark_outlined), selectedIcon: Icon(Icons.collections_bookmark), label: 'Coleção'),
+              NavigationDestination(icon: Icon(Icons.auto_stories_outlined), selectedIcon: Icon(Icons.auto_stories), label: 'Tipos'),
+            ],
+          ),
         ),
       ),
     );

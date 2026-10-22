@@ -6,7 +6,7 @@ import '../../core/theme/tokens.dart';
 import '../../core/widgets/type_badge.dart';
 
 /// Matriz 18×18 (atacante nas linhas, defensor nas colunas) que cabe na largura do celular.
-/// O multiplicador aparece ao tocar (ou arrastar com toque longo) numa célula.
+/// O resultado aparece ao tocar (ou arrastar com toque longo) numa casa.
 class MatrixView extends StatefulWidget {
   const MatrixView({super.key, required this.types});
   final List<String> types;
@@ -41,7 +41,7 @@ class _MatrixViewState extends State<MatrixView> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Linhas: tipo do ataque. Colunas: tipo de quem recebe.', style: text.bodySmall),
+          Text('↓ Linhas: tipo do golpe     → Colunas: tipo de quem leva o golpe', style: text.titleSmall),
           const SizedBox(height: Space.m),
           LayoutBuilder(
             builder: (context, box) {
@@ -77,7 +77,7 @@ class _MatrixViewState extends State<MatrixView> {
                       children: [
                         Column(children: [for (var i = 0; i < n; i++) header(i, isRow: true)]),
                         Semantics(
-                          label: 'Matriz de tipos. Toque numa célula para ver o multiplicador.',
+                          label: 'Tabela de tipos. Toque numa casa para ver o resultado.',
                           child: GestureDetector(
                             behavior: HitTestBehavior.opaque,
                             onTapDown: (d) => _pick(d.localPosition, cell),
@@ -120,9 +120,9 @@ class _Readout extends StatelessWidget {
   };
 
   static String factorWord(int f) => switch (f) {
-    0 => 'sem efeito',
-    50 => 'pouco efetivo',
-    200 => 'super efetivo',
+    0 => 'não causa dano',
+    50 => 'metade do dano',
+    200 => 'dano dobrado',
     _ => 'dano normal',
   };
 
@@ -132,51 +132,47 @@ class _Readout extends StatelessWidget {
     final s = sel;
     if (s == null) {
       return SizedBox(
-        height: 48,
+        height: 64,
         child: Align(
           alignment: Alignment.centerLeft,
-          child: Text('Toque numa célula para ver o multiplicador.', style: text.bodyMedium),
+          child: Text('Toque numa casa da tabela para ver o resultado.', style: text.bodyMedium),
         ),
       );
     }
     final atk = types[s.$1];
     final def = types[s.$2];
     final f = AppScope.of(context).dex.efficacy[atk]?[def] ?? 100;
+    TextSpan typeName(String t) => TextSpan(
+      text: nameOf(t),
+      style: text.titleMedium?.copyWith(color: TypeInks.of(t).text),
+    );
     return Semantics(
       liveRegion: true,
-      label: '${nameOf(atk)} contra ${nameOf(def)}: ${factorLabel(f)}, ${factorWord(f)}',
+      label: 'Golpe tipo ${nameOf(atk)} em Pokémon tipo ${nameOf(def)}: ${factorLabel(f)}, ${factorWord(f)}',
       excludeSemantics: true,
       child: SizedBox(
-        height: 48,
-        child: Row(
+        height: 64,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            TypeIcon(atk, size: 18),
-            const SizedBox(width: Space.xs),
-            Flexible(
-              child: Text(
-                nameOf(atk),
-                style: text.titleMedium?.copyWith(color: TypeInks.of(atk).text),
-                overflow: TextOverflow.ellipsis,
+            Text.rich(
+              TextSpan(
+                style: text.bodyMedium,
+                children: [const TextSpan(text: 'Golpe tipo '), typeName(atk), const TextSpan(text: ' em Pokémon tipo '), typeName(def)],
               ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: Space.s),
-              child: Icon(Icons.arrow_forward_rounded, size: 18, color: Ramp.n6),
-            ),
-            TypeIcon(def, size: 18),
-            const SizedBox(width: Space.xs),
-            Flexible(
-              child: Text(
-                nameOf(def),
-                style: text.titleMedium?.copyWith(color: TypeInks.of(def).text),
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-            const SizedBox(width: Space.m),
-            Text(factorLabel(f), style: text.headlineMedium?.copyWith(height: 1)),
-            const SizedBox(width: Space.s),
-            Flexible(
-              child: Text(factorWord(f), style: text.bodySmall, overflow: TextOverflow.ellipsis),
+            const SizedBox(height: Space.xs),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.baseline,
+              textBaseline: TextBaseline.alphabetic,
+              children: [
+                Text(factorLabel(f), style: text.headlineMedium?.copyWith(height: 1)),
+                const SizedBox(width: Space.s),
+                Flexible(child: Text(factorWord(f), style: text.titleSmall, overflow: TextOverflow.ellipsis)),
+              ],
             ),
           ],
         ),
@@ -206,10 +202,10 @@ class _Legend extends StatelessWidget {
       spacing: Space.l,
       runSpacing: Space.s,
       children: [
-        item(200, '2× super efetivo (cor do atacante)'),
-        item(100, '1× normal'),
-        item(50, '½× pouco efetivo'),
-        item(0, '0× sem efeito'),
+        item(200, '2× dano dobrado (na cor do golpe)'),
+        item(100, '1× dano normal'),
+        item(50, '½× metade do dano'),
+        item(0, '0× não causa dano'),
       ],
     );
   }
